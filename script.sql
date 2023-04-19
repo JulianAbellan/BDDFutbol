@@ -1384,8 +1384,7 @@ ORDER BY NumeroMVPS DESC
 FETCH FIRST 5 ROWS ONLY);
 
 
---CONSULTAS
-
+--CONSULTAS DE JULIAN
 
 --Muestra los 5 jugadores con más premios al jugador del partido
 
@@ -1427,10 +1426,69 @@ ORDER BY TotalGoles DESC);
 
 
 
+--PROCEDIMIENTOS DE JULIAN
+
+--Dada un país y una división, muestra todos los equipos con el listado de sus respectivos jugadores
+
+SET SERVEROUTPUT ON;
+
+CREATE OR REPLACE PROCEDURE InfoLiga (p_pais in Pais_objtab.nombre%type, p_div in LigaFutbol_objtab.Division%type)
+IS
+    TYPE Eq_tab IS TABLE OF REF Equipo_objtyp;
+    TEquipos Eq_tab;
+    VNombre Equipo_objtab.nombre%type;
+BEGIN
+
+    IF p_pais IS null THEN 
+        RAISE_APPLICATION_ERROR(-20001, 'El parámetro "país" no puede ser nulo');
+    END IF;
+
+    IF p_div IS null THEN 
+        RAISE_APPLICATION_ERROR(-20002, 'El parámetro "división" no puede ser nulo');
+    END IF;
+
+    SELECT REF(e) BULK COLLECT INTO TEquipos
+    FROM Equipo_objtab e
+    WHERE Liga = (SELECT REF(l) 
+                FROM LigaFutbol_objtab l
+                WHERE l.Pais = (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = p_pais)
+                AND l.Division = p_div);
+    
+    DBMS_OUTPUT.PUT_LINE('========================================================');        
+    DBMS_OUTPUT.PUT_LINE('LISTA DE LOS EQUIPOS DE LA ' || p_div || ' DIVISION DE ' || UPPER(p_pais));
+    DBMS_OUTPUT.PUT_LINE('========================================================');
+    
+    
+    FOR i IN 1..TEquipos.COUNT LOOP
+        SELECT DEREF(TEquipos(i)).Nombre INTO VNombre FROM DUAL;
+        DBMS_OUTPUT.PUT_LINE('========================================================');        
+        DBMS_OUTPUT.PUT_LINE('EQUIPO: ' ||  VNOMBRE);
+        DBMS_OUTPUT.PUT_LINE('========================================================');
+
+        FOR VJugador IN (SELECT *
+                        FROM Jugador_objtab 
+                        WHERE Equipo = TEquipos(i)) LOOP
+
+                            IF VJugador.Apellido2 IS NULL THEN 
+                                DBMS_OUTPUT.PUT_LINE(' - ' || VJugador.Nombre || ' ' || VJugador.Apellido1);
+                            ELSE
+                                DBMS_OUTPUT.PUT_LINE(' - ' || VJugador.Nombre || ' ' || VJugador.Apellido1 || ' ' || VJugador.Apellido2);
+                            END IF;
+                        END LOOP;
+        DBMS_OUTPUT.PUT_LINE(' ');
+
+    END LOOP;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLCODE || ' - ' || SQLERRM);
+
+END;
+/
 
 
 
-
+EXECUTE InfoLiga('España', 1);
 
 
 
