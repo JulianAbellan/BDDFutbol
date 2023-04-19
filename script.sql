@@ -20,11 +20,6 @@ DROP TYPE Resultado_objtyp FORCE;
 
 
 
-
-
-
-
-
 DROP TABLE Pais_objtab;
 DROP TABLE LigaFutbol_objtab;
 DROP TABLE Clasificacion_objtab;
@@ -41,18 +36,11 @@ DROP TABLE Presidente_objtab;
 
 
 
-
-
-
-
-
 CREATE OR REPLACE TYPE Pais_objtyp AS OBJECT(
     Nombre VARCHAR2(20),
     Continente VARCHAR2(20)
 );
 /
-
-
 
 
 CREATE OR REPLACE TYPE Persona_objtyp AS OBJECT(
@@ -66,12 +54,9 @@ CREATE OR REPLACE TYPE Persona_objtyp AS OBJECT(
 /
 
 
-
-
 CREATE OR REPLACE TYPE Presidente_objtyp UNDER Persona_objtyp(
     Aval VARCHAR2(20)
 );
-/
 
 
 
@@ -80,10 +65,6 @@ CREATE OR REPLACE TYPE Entrenador_objtyp UNDER Persona_objtyp(
     FueJugador NUMBER(1,0)
 );
 /
-
-
-
-
 
 
 
@@ -554,7 +535,9 @@ INSERT INTO Pais_objtab VALUES('Bélgica', 'Europa');/
 INSERT INTO Pais_objtab VALUES('Austria', 'Europa');/
 INSERT INTO Pais_objtab VALUES('Portugal', 'Europa');/
 INSERT INTO Pais_objtab VALUES('Eslovenia', 'Europa');/
-
+INSERT INTO Pais_objtab VALUES('Noruega', 'Europa');/
+INSERT INTO Pais_objtab VALUES('Escocia', 'Europa');/
+INSERT INTO Pais_objtab VALUES('Egipto', 'África');/
 
 
 
@@ -655,7 +638,7 @@ INSERT INTO club_objtab (id_club, nombre, presupuesto)
 
 
 INSERT INTO club_objtab (id_club, nombre, presupuesto)
-    VALUES (200, 'Manchester City', 400000000);/
+    VALUES (200, 'City Group', 400000000);/
 
 
 
@@ -778,7 +761,13 @@ VALUES (118, 'Diego', 'Simeone', 'Juárez', 51, 1, (SELECT REF(p) FROM Pais_objt
 /
 
 
+INSERT INTO Entrenador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, FueJugador, Pais)
+VALUES (119, 'Josep', 'Guardiola', 'Sala', 52, 1, (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'España'));
+/
 
+INSERT INTO Entrenador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, FueJugador, Pais)
+VALUES (120, 'Jürgen', 'Klopp', null, 45, 0, (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Alemania'));
+/
 
 INSERT INTO equipo_objtab (id_equipo, nombre, numerotitulos, presupuesto, club, estadio, entrenador, liga)
     VALUES (1, 'FC Barcelona', 26, 900000, (SELECT REF(c) FROM club_objtab c WHERE c.nombre = 'FC Barcelona'),
@@ -799,9 +788,19 @@ INSERT INTO equipo_objtab (id_equipo, nombre, numerotitulos, presupuesto, club, 
             (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.nombre like 'LaLiga Santander'));
 /
 
+INSERT INTO equipo_objtab (id_equipo, nombre, numerotitulos, presupuesto, club, estadio, entrenador, liga)
+    VALUES (4, 'Manchester City', 8, 1200000, (SELECT REF(c) FROM club_objtab c WHERE c.nombre = 'Manchester City'),
+            (SELECT REF(e) FROM estadio_objtab e WHERE e.nombre = 'Metropolitano'),
+            (SELECT REF(e) FROM entrenador_objtab e WHERE e.nombre like 'Josep'),
+            (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.nombre like 'Premier League'));
+/
 
-
-
+INSERT INTO equipo_objtab (id_equipo, nombre, numerotitulos, presupuesto, club, estadio, entrenador, liga)
+    VALUES (5, 'Liverpool', 19, 800000, (SELECT REF(c) FROM club_objtab c WHERE c.nombre = 'Liverpool'),
+            (SELECT REF(e) FROM estadio_objtab e WHERE e.nombre = 'Anfield'),
+            (SELECT REF(e) FROM entrenador_objtab e WHERE e.nombre like 'Jürgen'),
+            (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.nombre like 'Premier League'));
+/
 
 
 
@@ -1160,9 +1159,125 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
 );/
 
 
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(82, 'Ederson', 'Santana', 'Moraes' , 29, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Brasil'), 31, 'Portero', 10000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
 
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(83, 'Rúben', 'Dias', 'Alves' , 25, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 6, 'Defensa', 10000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
 
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(84, 'Nathan', 'Aké', null , 28, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Países Bajos'), 3, 'Defensa', 8000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
 
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(85, 'Aymeric', 'Laporte', null , 28, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 14, 'Defensa', 10000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(86, 'Kyle', 'Walker', null , 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 2, 'Defensa', 9000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(87, 'Kevin', 'de Bruyne', null , 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Bélgica'), 17, 'Centrocampista', 12000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(88, 'Bernando', 'Silva', 'dos Santos' , 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Centrocampista', 12000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(89, 'Ilkay', 'Gündogan', null , 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Alemania'), 8, 'Centrocampista', 11000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(90, 'Phil', 'Foden', null , 22, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 47, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(91, 'Erling', 'Haaland', null , 22, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Noruega'), 9, 'Delantero', 15000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(92, 'Jack', 'Grealish', null , 27, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 10, 'Delantero', 10000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(93, 'Julián', 'Álvarez', 'Frías' , 21, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Argentina'), 19, 'Delantero', 6000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(94, 'Alisson', 'Becker', 'Gonçalves' , 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Brasil'), 19, 'Portero', 8000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(95, 'Virgil', 'van Dijk', null , 31, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Países Bajos'), 19, 'Defensa', 10000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(96, 'Joe', 'Gomez', null , 25, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 2, 'Defensa', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(97, 'Trent', 'Alexander-Arnold', null , 24, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 66, 'Defensa', 9000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(98, 'Ibrahima', 'Konaté', null , 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Francia'), 5, 'Defensa', 9000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(99, 'Andrew', 'Robertson', null , 29, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Escocia'), 26, 'Defensa', 9000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(100, 'Thiago', 'Alcántara', 'Rivera' , 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 6, 'Centrocampista', 8000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(101, 'Curtis', 'Jones', null, 22, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 17, 'Centrocampista', 8000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(102, 'James', 'Milner', null, 37, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 7, 'Centrocampista', 8000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(103, 'Mohamed', 'Salah', null, 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Egipto'), 11, 'Centrocampista', 11000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(104, 'Darwin', 'Núñez', 'Olivera', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Uruguay'), 27, 'Delantero', 10000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(105, 'Diogo', 'Jota', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+);/
 
 INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
     VALUES (1, '2022-23', 62, 20, 2, 2, 46, 8,
@@ -1347,12 +1462,87 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
                         Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
             ));
 
+INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, jugadores, arbitros)
+    VALUES (5, SYSDATE, 20,
+            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Manchester City'),
+            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Liverpool'),  
+            nt_juega_typ(
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Ederson')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dias') AND j.Nombre = 'Rúben'),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Aké')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Laporte')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Walker')),
+                        Juega_objtyp(0, 60, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'de Bruyne')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Gündogan')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Silva')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 3, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Haaland')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Foden')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 1, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Álvarez')),
+                        Juega_objtyp(60, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Grealish')),
+                     
+
+
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Becker')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'van Dijk')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Konaté')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Robertson')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alexander-Arnold')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 2, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alcántara')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Milner')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Jones')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Núñez')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Salah')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Jota'))
+            ),
+            nt_arbitra_typ(
+                        Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Lahoz')),
+                        Arbitra_objtyp('Asistente adicional', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Gil')),
+                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
+                        Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
+            ));
+
+INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, jugadores, arbitros)
+    VALUES (6, SYSDATE, 12,
+            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Liverpool'),
+            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Manchester City'),  
+            nt_juega_typ(
+                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Becker')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'van Dijk')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Konaté')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Robertson')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alexander-Arnold')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alcántara')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Milner')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Jones')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 1, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Núñez')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 1, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Salah')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Jota')),
+                     
+
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Ederson')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dias') AND j.Nombre = 'Rúben'),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Aké')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Laporte')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Walker')),
+                        Juega_objtyp(0, 60, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'de Bruyne')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Gündogan')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Silva')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 1, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Haaland')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Foden')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 1, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Álvarez')),
+                        Juega_objtyp(60, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Grealish'))
+            ),
+            nt_arbitra_typ(
+                        Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Lahoz')),
+                        Arbitra_objtyp('Asistente adicional', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Gil')),
+                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
+                        Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
+            ));
+
 
 UPDATE Partido_objtab
 SET Resultado = (Resultado_objtyp(5, 0, 'Fati', 47, 50))
 WHERE ID_Partido = 1;
-
-
 
 
 UPDATE Partido_objtab
@@ -1369,19 +1559,13 @@ UPDATE Partido_objtab
 SET Resultado = (Resultado_objtyp(1, 1, 'Oblak', 47, 52))
 WHERE ID_Partido = 4;
 
+UPDATE Partido_objtab
+SET Resultado = (Resultado_objtyp(4, 2, 'Haaland', 49, 52))
+WHERE ID_Partido = 5;
 
-
-
---CONSULTAS
-
-
-CREATE OR REPLACE VIEW Top5MVP AS(
-SELECT p.Resultado.MVP AS NombreJugador, COUNT(*) AS NumeroMVPS, j.Equipo.Nombre as Equipo
-FROM Partido_objtab p, Jugador_objtab j
-GROUP BY p.Resultado.MVP, j.Equipo.Nombre, j.Apellido1
-HAVING j.Apellido1 = p.Resultado.MVP
-ORDER BY NumeroMVPS DESC
-FETCH FIRST 5 ROWS ONLY);
+UPDATE Partido_objtab
+SET Resultado = (Resultado_objtyp(2, 2, 'Salah', 48, 50))
+WHERE ID_Partido = 6;
 
 
 --CONSULTAS DE JULIAN
@@ -1492,7 +1676,67 @@ EXECUTE InfoLiga('España', 1);
 
 
 
+--Dado un país, dime el jugador con esa nacionalidad que más goles haya marcado en esa temporada
 
+
+CREATE OR REPLACE PROCEDURE MaxGoleadorPaisTemporada (p_pais in Pais_objtab.nombre%type)
+IS
+    TYPE Jug_tab IS TABLE OF REF Jugador_objtyp;
+    TJugadores Jug_tab;
+    VGoles nt_juega_tab.Goles%type;
+    VNombre Jugador_objtab.Nombre%type;
+    VApellido1 Jugador_objtab.Apellido1%type;
+    VApellido2 Jugador_objtab.Apellido2%type;
+    VEquipo Equipo_objtab.Nombre%type;
+BEGIN
+
+    IF p_pais IS null THEN 
+        RAISE_APPLICATION_ERROR(-20001, 'El parámetro "país" no puede ser nulo');
+    END IF;
+
+    SELECT REF(j) BULK COLLECT INTO TJugadores
+    FROM Jugador_objtab j
+    WHERE Pais = (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = p_pais);
+    
+    DBMS_OUTPUT.PUT_LINE('========================================================');        
+    DBMS_OUTPUT.PUT_LINE('MOSTRANDO LA TABLA DE GOLEADORES DE ' || UPPER(p_pais));
+    DBMS_OUTPUT.PUT_LINE('========================================================');
+    
+    
+
+
+        FOR VJugador IN (SELECT *
+                        FROM Jugador_objtab 
+                        WHERE Pais = (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = p_pais) AND GolesTotales > 0 AND PartidosJugados > 0
+                        ORDER BY GolesTotales) LOOP
+
+                            SELECT j.Nombre, j.Apellido1, j.Apellido2, DEREF(j.Equipo).Nombre, SUM(Goles) INTO VNombre, VApellido1, VApellido2, VEquipo, VGoles
+                            FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+                            WHERE (DEREF(jugador).Id_persona = j.Id_persona) AND j.id_persona = VJugador.Id_persona
+                            GROUP BY j.Nombre, j.Apellido1, j.Apellido2, DEREF(j.Equipo).Nombre;
+
+                            IF VApellido2 IS NULL THEN 
+                                DBMS_OUTPUT.PUT_LINE(' - ' || VJugador.Nombre || ' ' || VJugador.Apellido1 || ' (' || VEquipo || '): ' || VGoles);
+                            ELSE
+                                DBMS_OUTPUT.PUT_LINE(' - ' || VJugador.Nombre || ' ' || VJugador.Apellido1 || ' ' || VJugador.Apellido2 ||' (' || VEquipo || '): ' || VGoles);
+                            END IF;
+                        END LOOP;
+        DBMS_OUTPUT.PUT_LINE(' ');
+
+
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLCODE || ' - ' || SQLERRM);
+
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+
+
+
+EXECUTE MaxGoleadorPaisTemporada('Brasil');
 
 
 
