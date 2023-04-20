@@ -1289,7 +1289,7 @@ INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosg
 /
 INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
     VALUES (3, '2022-23', 54, 16, 6, 3, 45, 20,
-            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'Altético de Madrid'),
+            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'Atlético de Madrid'),
             (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.id_liga =  1));
 /
 
