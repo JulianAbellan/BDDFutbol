@@ -1781,7 +1781,6 @@ SELECT p.*, pre.fechacese, pre.fechaposesion, (pre.fechacese - pre.fechaposesion
             (pre.fechacese - pre.fechaposesion) = (SELECT MAX(pre.fechacese - pre.fechaposesion) as resta
         FROM preside_objtab pre)
 
---
 
 --_____________________________________________________________________________________________________
 
@@ -1790,13 +1789,10 @@ SELECT p.*, pre.fechacese, pre.fechaposesion, (pre.fechacese - pre.fechaposesion
 --______________________________________________________________________________________________________
 
 
-
-
 --2 Disparadoreh
 
 
 --Al jugar un partido actualizar el número de minutos jugados de cada jugador
-
 
 CREATE OR REPLACE TRIGGER MINJUGADOS
 BEFORE INSERT OR UPDATE ON Partido_objtab
