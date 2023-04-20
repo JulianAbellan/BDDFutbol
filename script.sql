@@ -1819,8 +1819,6 @@ BEGIN
 END;
 /
 
-
-
 CREATE OR REPLACE TRIGGER Clasificacion_Trigger
 AFTER INSERT OR DELETE OR UPDATE ON Partido_objtab
 FOR EACH ROW
@@ -1834,32 +1832,65 @@ DECLARE
     VPGV clasificacion_objtab.partidosganados%TYPE;
     VPEV clasificacion_objtab.partidosempatados%TYPE;
     VPPV clasificacion_objtab.partidosperdidos%TYPE;
-    VN REF equipo_objtyp;
-    vnf equipo_objtyp;
+    VNLocal equipo_objtab.nombre%type;
+    VNVisitante equipo_objtab.nombre%type;
 BEGIN
 
     SELECT CalculoTemp(:NEW.Fecha) INTO VTemporada FROM DUAL;
     
-    VN := :NEW.Equipo_local;
-    vnf := DEREF(VN);
-    /*CheckExisteClasif(VN, VTemporada);
-    CheckExisteClasif(DEREF(:NEW.Equipo_visitante).Nombre, VTemporada);
+    SELECT DEREF(:NEW.Equipo_local).Nombre, DEREF(:NEW.Equipo_visitante).Nombre 
+    INTO VNLocal, VNVisitante
+    FROM DUAL;
 
-    SELECT CalculoPartido(:NEW, VPuntosL, VPGL, VPEL, VPPL, VPuntosV, VPGV, VPEV, VPPV) FROM DUAL;
+    CheckExisteClasif(VNLocal, VTemporada);
+    CheckExisteClasif(VNVisitante, VTemporada);
 
+
+    IF :NEW.Resultado.GolesLocal > :NEW.Resultado.GolesVisitante THEN
+        (SELECT c.Puntos + 3 INTO VPuntosL FROM Clasificacion_objtab c WHERE c.Equipo = REF(:NEW.Equipo_local));
+
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = c.Puntos + VPuntosL,
+            c.PartidosGanados = c.PartidosGanados + VPGL,
+            c.PartidosEmpatados = c.PartidosEmpatados + VPEL,
+            c.PartidosPerdidos = c.PartidosPerdidos + VPPL
+        WHERE c.Equipo = REF(:NEW.Equipo_local);
+    
+        
+        VPuntosV := 0;
+        VPGL := 1;
+        VPPV := 1;
+    ELSIF :NEW.Resultado.GolesLocal < :NEW.Resultado.GolesVisitante THEN
+        VPuntosL := 0;
+        VPuntosV := 3;
+        VPPL := 1;
+        VPGV := 1;
+    ELSE 
+        VPuntosL := 1;
+        VPuntosV := 1;
+        VPEL := 1;
+        VPEV := 1;
+    END IF;
+  END;
     UPDATE Clasificacion_objtab c
     SET c.Puntos = c.Puntos + VPuntosL,
         c.PartidosGanados = c.PartidosGanados + VPGL,
         c.PartidosEmpatados = c.PartidosEmpatados + VPEL,
         c.PartidosPerdidos = c.PartidosPerdidos + VPPL
     WHERE c.Equipo = REF(:NEW.Equipo_local);
-
+END;  
     UPDATE Clasificacion_objtab c
     SET c.Puntos = c.Puntos + VPuntosV,
         c.PartidosGanados = c.PartidosGanados + VPGV,
         c.PartidosEmpatados = c.PartidosEmpatados + VPEV,
         c.PartidosPerdidos = c.PartidosPerdidos + VPPV
-    WHERE c.Equipo = REF(:NEW.Equipo_visitante);*/
+    WHERE c.Equipo = REF(:NEW.Equipo_visitante);
 
 END;
 /
+
+
+
+
+
+SELECT c.Puntos FROM Clasificacion_objtab c WHERE c.Equipo = REF(:NEW.Equipo_local)
