@@ -1748,37 +1748,9 @@ EXECUTE MaxGoleadorPaisTemporada('Brasil');
 
 -- Disparador para mantener la tabla Clasificación actualizada en todo momento
 
-CREATE OR REPLACE TRIGGER Clasificacion_Trigger
-AFTER INSERT OR DELETE OR UPDATE ON Partido_objtab
-FOR EACH ROW
-DECLARE
-    VTemporada Clasificacion_objtab.Temporada%TYPE;
-BEGIN
 
-    SELECT CalculoTemp(:NEW.Fecha) INTO VTemporada FROM DUAL;
 
-    SELECT c.ID_clasificacion INTO VIDLocal
-    FROM Clasificacion_objtab c
-    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = DEREF(:new.Equipo_local).Nombre)
-
-    SELECT c.ID_clasificacion INTO VIDVisitante
-    FROM Clasificacion_objtab c
-    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = DEREF(:new.Equipo_visitante).Nombre)
-
-    IF VIDLocal IS NULL THEN
-
-    END IF;
-
-    IF VIDVisitante IS NULL THEN 
-
-END;
-
-CREATE OR REPLACE FUNCTION ClasifExiste (VID IN Clasificacion_objtab.ID_clasificacion%TYPE) RETURN boolean AS
-BEGIN
-    SELECT c.ID_clasificacion INTO VID
-    FROM Clasificacion_objtab c
-    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = DEREF(:new.Equipo_local).Nombre)
-
+CREATE SEQUENCE Seq_Clasif  INCREMENT BY 1 START WITH 10 MAXVALUE 9999 CACHE 15 NOCYCLE;
 
 CREATE OR REPLACE FUNCTION CalculoTemp (Fecha IN DATE) RETURN VARCHAR2 AS
 
@@ -1795,3 +1767,42 @@ BEGIN
     END IF;
 
 END;
+
+CREATE OR REPLACE PROCEDURE CheckExisteClasif(VEquipo in Equipo_objtab.nombre%type, VTemp in Clasificacion_objtab.Temporada%type) 
+IS
+    VID Clasificacion_objtab.ID_clasificacion%type;
+BEGIN
+    SELECT c.ID_clasificacion INTO VID
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = VEquipo);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+    IF VID IS NULL THEN
+        INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
+        VALUES (Seq_Clasif.NEXTVAL, VTemp, 0, 0, 0, 0, 0, 0,
+            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre LIKE VEquipo),
+            (SELECT e.liga FROM equipo_objtab e WHERE e.nombre = VEquipo)
+            );
+    END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER Clasificacion_Trigger
+AFTER INSERT OR DELETE OR UPDATE ON Partido_objtab
+FOR EACH ROW
+DECLARE
+    VTemporada Clasificacion_objtab.Temporada%TYPE;
+BEGIN
+
+    SELECT CalculoTemp(:NEW.Fecha) INTO VTemporada FROM DUAL;
+
+    EXECUTE CheckExisteClasif(DEREF(:NEW.Equipo_local).Nombre, VTemp);
+    EXECUTE CheckExisteClasif(DEREF(:NEW.Equipo_visitante).Nombre, VTemp);
+
+
+END;
+
+
+
+
+/
