@@ -1798,22 +1798,19 @@ CREATE OR REPLACE TRIGGER MINJUGADOS
 BEFORE INSERT OR UPDATE ON Partido_objtab
 FOR EACH ROW
 DECLARE
-  
-    --cursor cursorfinal IS (SELECT j.Jugador.Apellido1, j.MinutoEntrada, j.MinutoSalida, p.resultado.MinutosPrimera, p.resultado.MinutosSegunda FROM Partido_objtab p, TABLE(p.jugadores) j);
 
     SolucionJugador NUMBER(2);
     apellidojugador VARCHAR(20);
         
 BEGIN
-
-    for vi in (SELECT j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS jugentrada, j.MinutoSalida AS jugsalida, p.resultado.MinutosPrimera AS minprimera, p.resultado.MinutosSegunda AS minsegunda FROM Partido_objtab p, TABLE(p.jugadores) j) loop
+    for vi in (SELECT j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS jugentrada, j.MinutoSalida AS jugsalida, p.resultado.MinutosPrimera AS minprimera, p.resultado.MinutosSegunda AS minsegunda 
+                FROM Partido_objtab p, TABLE(p.jugadores) j) loop
         
         if (vi.jugsalida is NULL) then
             SolucionJugador := vi.minprimera + vi.minsegunda - vi.jugentrada;                        
         else
             SolucionJugador := vi.jugsalida - vi.jugentrada;
         end if;
-        
         DBMS_OUTPUT.put_line (vi.apellido || ' ' || SolucionJugador);
         
         
@@ -1823,6 +1820,16 @@ BEGIN
 END;
 
  SET serveroutput ON
+
+
+
+SELECT j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS jugentrada, j.MinutoSalida AS jugsalida, p.resultado.MinutosPrimera AS minprimera, p.resultado.MinutosSegunda AS minsegunda FROM Partido_objtab p, TABLE(p.jugadores) j
+
+
+SELECT j.Jugador.Apellido1, j.MinutoEntrada, j.MinutoSalida, p.resultado.MinutosPrimera, p.resultado.MinutosSegunda 
+    FROM Partido_objtab p, TABLE(p.jugadores) j
+
+
 
 
 -- 
