@@ -1739,5 +1739,124 @@ SET SERVEROUTPUT ON;
 EXECUTE MaxGoleadorPaisTemporada('Brasil');
 
 
+--_____________________________________________________________________________________________________
 
+--___________________________________RAÚL CONSULTAS_____________________________________________________
+
+--______________________________________________________________________________________________________
+--3 Consultah
+--Dime el arbitro que
+--participó como asistente en los partidos en cuyo resultado el número de goles del equipo local fue mayor de 5 
+
+CREATE OR REPLACE VIEW arbitroAsistente AS(
+
+SELECT * 
+    FROM arbitro_objtab a
+    WHERE REF(a) IN     
+(SELECT a.Arbitro
+    FROM partido_objtab p, TABLE(p.arbitros) a
+    WHERE (p.resultado.GolesLocal > 5)  AND a.Rol = 'Asistente')
+    ORDER BY a.ID_PERSONA
+)
+
+--Dime la clasificación de la LaLiga Santander 
+--del equipo haya participado en el partido con más goles como visitante
+ 
+SELECT *
+    FROM clasificacion_objtab c
+    WHERE c.Liga.Nombre = 'LaLiga Santander'
+        AND
+            c.equipo in 
+        (SELECT p.equipo_visitante
+        FROM partido_objtab p
+        WHERE p.resultado.GolesVisitante = (SELECT MAX(p.resultado.GolesVisitante) FROM partido_objtab p)) 
+
+--Dime el presidente con el periodo entre posesión 
+--y cese más larga y cuyo equipo tenga el mayor número de partidos ganados
+
+SELECT p.*, pre.fechacese, pre.fechaposesion, (pre.fechacese - pre.fechaposesion) as dias
+    FROM presidente_objtab p, preside_objtab pre
+    WHERE REF(p) = pre.presidente
+        AND
+            (pre.fechacese - pre.fechaposesion) = (SELECT MAX(pre.fechacese - pre.fechaposesion) as resta
+        FROM preside_objtab pre)
+
+--
+
+--_____________________________________________________________________________________________________
+
+--___________________________________RAÚL DISPARADORES_____________________________________________________
+
+--______________________________________________________________________________________________________
+
+
+
+
+--2 Disparadoreh
+
+
+--Al jugar un partido actualizar el número de minutos jugados de cada jugador
+
+
+CREATE OR REPLACE TRIGGER MINJUGADOS
+BEFORE INSERT OR UPDATE ON Partido_objtab
+FOR EACH ROW
+DECLARE
+  
+    --cursor cursorfinal IS (SELECT j.Jugador.Apellido1, j.MinutoEntrada, j.MinutoSalida, p.resultado.MinutosPrimera, p.resultado.MinutosSegunda FROM Partido_objtab p, TABLE(p.jugadores) j);
+
+    SolucionJugador NUMBER(2);
+    apellidojugador VARCHAR(20);
+        
+BEGIN
+
+    for vi in (SELECT j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS jugentrada, j.MinutoSalida AS jugsalida, p.resultado.MinutosPrimera AS minprimera, p.resultado.MinutosSegunda AS minsegunda FROM Partido_objtab p, TABLE(p.jugadores) j) loop
+        
+        if (vi.jugsalida is NULL) then
+            SolucionJugador := vi.minprimera + vi.minsegunda - vi.jugentrada;                        
+        else
+            SolucionJugador := vi.jugsalida - vi.jugentrada;
+        end if;
+        
+        DBMS_OUTPUT.put_line (vi.apellido || ' ' || SolucionJugador);
+        
+        
+        UPDATE jugador_objtab set MinutosJugados = SolucionJugador WHERE Apellido1 = vi.apellido;
+        
+    end loop;
+END;
+
+ SET serveroutput ON
+
+
+-- 
+--Al jugar un partido actualizar la clasificación del equipo
+
+
+
+--_____________________________________________________________________________________________________
+
+--___________________________________RAÚL PROCEDIMIENTOS_____________________________________________________
+
+--______________________________________________________________________________________________________
+
+
+
+--1-2 Procedimientoh
+
+
+
+
+--funcion que calcule el numero de minutos de cada jugador
+
+CREATE OR REPLACE PROCEDURE MinutoSalidaJugador AS
+
+BEGIN
+
+
+
+END;
+
+
+--funcion que visualice la clasificación 
 
