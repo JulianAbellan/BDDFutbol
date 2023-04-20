@@ -1675,7 +1675,7 @@ END;
 
 
 
---EXECUTE InfoLiga('España', 1);/
+EXECUTE InfoLiga('España', 1);
 
 
 
@@ -1734,12 +1734,9 @@ EXCEPTION
 END;
 /
 
-SET SERVEROUTPUT ON;/
+SET SERVEROUTPUT ON;
 
-
-
-
-EXECUTE MaxGoleadorPaisTemporada('Brasil');/
+EXECUTE MaxGoleadorPaisTemporada('Brasil');
 
 
 -- DISPARADORES DE JULIÁN
@@ -1788,9 +1785,9 @@ END;
 
 
 
-CREATE OR REPLACE FUNCTION CalculoPuntos(VPartido IN Partido_objtyp%TYPE, 
+CREATE OR REPLACE PROCEDURE CalculoPartido(VPartido IN Partido_objtyp, 
 VPuntosL OUT Clasificacion_objtab.Puntos%TYPE, VPGL OUT clasificacion_objtab.partidosganados%TYPE, VPEL OUT clasificacion_objtab.partidosempatados%TYPE, VPPL OUT clasificacion_objtab.partidosperdidos%TYPE,
-VPuntosV OUT Clasificacion_objtab.Puntos%TYPE, VPGV OUT clasificacion_objtab.partidosganados%TYPE, VPEV OUT clasificacion_objtab.partidosempatados, VPPV OUT clasificacion_objtab.partidosperdidos) AS
+VPuntosV OUT Clasificacion_objtab.Puntos%TYPE, VPGV OUT clasificacion_objtab.partidosganados%TYPE, VPEV OUT clasificacion_objtab.partidosempatados%TYPE, VPPV OUT clasificacion_objtab.partidosperdidos%TYPE) IS
 BEGIN
 
     VPGL :=0;
@@ -1819,7 +1816,7 @@ BEGIN
     
         
 
-END:
+END;
 /
 
 
@@ -1837,14 +1834,18 @@ DECLARE
     VPGV clasificacion_objtab.partidosganados%TYPE;
     VPEV clasificacion_objtab.partidosempatados%TYPE;
     VPPV clasificacion_objtab.partidosperdidos%TYPE;
+    VN REF equipo_objtyp;
+    vnf equipo_objtyp;
 BEGIN
 
     SELECT CalculoTemp(:NEW.Fecha) INTO VTemporada FROM DUAL;
+    
+    VN := :NEW.Equipo_local;
+    vnf := DEREF(VN);
+    /*CheckExisteClasif(VN, VTemporada);
+    CheckExisteClasif(DEREF(:NEW.Equipo_visitante).Nombre, VTemporada);
 
-    EXECUTE CheckExisteClasif(DEREF(:NEW.Equipo_local).Nombre, VTemp);
-    EXECUTE CheckExisteClasif(DEREF(:NEW.Equipo_visitante).Nombre, VTemp);
-
-    SELECT CalculoPuntos(:NEW, VPuntosL, VPGL, VPEL, VPPL, VPuntosV, VPGV, VPEV, VPPV) INTO VPLocal FROM DUAL;
+    SELECT CalculoPartido(:NEW, VPuntosL, VPGL, VPEL, VPPL, VPuntosV, VPGV, VPEV, VPPV) FROM DUAL;
 
     UPDATE Clasificacion_objtab c
     SET c.Puntos = c.Puntos + VPuntosL,
@@ -1858,7 +1859,7 @@ BEGIN
         c.PartidosGanados = c.PartidosGanados + VPGV,
         c.PartidosEmpatados = c.PartidosEmpatados + VPEV,
         c.PartidosPerdidos = c.PartidosPerdidos + VPPV
-    WHERE c.Equipo = REF(:NEW.Equipo_visitante);
+    WHERE c.Equipo = REF(:NEW.Equipo_visitante);*/
 
 END;
 /
