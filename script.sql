@@ -1289,6 +1289,11 @@ INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosg
             (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'Real Madrid CF'),
             (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.id_liga =  1));
 /
+INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
+    VALUES (3, '2022-23', 54, 16, 6, 3, 45, 20,
+            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'Altético de Madrid'),
+            (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.id_liga =  1));
+/
 
 
 
@@ -1568,7 +1573,7 @@ SET Resultado = (Resultado_objtyp(2, 2, 'Salah', 48, 50))
 WHERE ID_Partido = 6;
 
 
---CONSULTAS DE JULIAN
+--CONSULTAS DE JULIÁN
 
 --Muestra los 5 jugadores con más premios al jugador del partido
 
@@ -1610,7 +1615,7 @@ ORDER BY TotalGoles DESC);
 
 
 
---PROCEDIMIENTOS DE JULIAN
+--PROCEDIMIENTOS DE JULIÁN
 
 --Dada un país y una división, muestra todos los equipos con el listado de sus respectivos jugadores
 
@@ -1739,5 +1744,54 @@ SET SERVEROUTPUT ON;
 EXECUTE MaxGoleadorPaisTemporada('Brasil');
 
 
+-- DISPARADORES DE JULIÁN
+
+-- Disparador para mantener la tabla Clasificación actualizada en todo momento
+
+CREATE OR REPLACE TRIGGER Clasificacion_Trigger
+AFTER INSERT OR DELETE OR UPDATE ON Partido_objtab
+FOR EACH ROW
+DECLARE
+    VTemporada Clasificacion_objtab.Temporada%TYPE;
+BEGIN
+
+    SELECT CalculoTemp(:NEW.Fecha) INTO VTemporada FROM DUAL;
+
+    SELECT c.ID_clasificacion INTO VIDLocal
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = DEREF(:new.Equipo_local).Nombre)
+
+    SELECT c.ID_clasificacion INTO VIDVisitante
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = DEREF(:new.Equipo_visitante).Nombre)
+
+    IF VIDLocal IS NULL THEN
+
+    END IF;
+
+    IF VIDVisitante IS NULL THEN 
+
+END;
+
+CREATE OR REPLACE FUNCTION ClasifExiste (VID IN Clasificacion_objtab.ID_clasificacion%TYPE) RETURN boolean AS
+BEGIN
+    SELECT c.ID_clasificacion INTO VID
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = DEREF(:new.Equipo_local).Nombre)
 
 
+CREATE OR REPLACE FUNCTION CalculoTemp (Fecha IN DATE) RETURN VARCHAR2 AS
+
+    VYear NUMBER(4);
+    VMes NUMBER(2);
+BEGIN
+    SELECT EXTRACT(year FROM Fecha), EXTRACT(month FROM Fecha) INTO VYear, VMes FROM DUAL;
+
+    IF VMes > 7 THEN 
+        RETURN '' || VYear || '-' || (VYear+1)MOD 2000;
+    ELSIF VMes < 7 THEN
+        RETURN '' || VYear-1 || '-' || (VYear)MOD 2000;
+    ELSE RAISE_APPLICATION_ERROR('-20001','No puede haber partidos en julio, porque hay vacaciones obligatorias');
+    END IF;
+
+END;
