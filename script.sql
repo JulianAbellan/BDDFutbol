@@ -2015,3 +2015,217 @@ END;
 /
 
 
+--Consultas JAvier
+
+-- Muestrame el máximo goleador y el jugador con más tarjetas amarillas de cada
+--equipo de todos los equipos de la primera y segunda división española de la temporada actual.
+
+CREATE OR REPLACE VIEW vista1 AS (
+    SELECT nombre, apellido1 AS apellido, golestotales, tarjetasamarillas, j.equipo.nombre AS Equipo
+    FROM jugador_objtab j
+    WHERE j.equipo.liga.division IN (1,2)
+    AND j.equipo.liga.pais.nombre LIKE 'España'
+    AND j.golestotales = (
+        SELECT MAX(golestotales) 
+        FROM jugador_objtab a 
+        WHERE a.equipo=j.equipo)
+    AND j.historial.TemporadaSalida IS NULL
+    UNION
+    SELECT nombre, apellido1, golestotales, tarjetasamarillas, j.equipo.nombre as Equipo
+    FROM jugador_objtab j
+    WHERE j.equipo.liga.division IN (1,2)
+    AND j.equipo.liga.pais.nombre LIKE 'España'
+    AND j.tarjetasamarillas = (
+        SELECT MAX(tarjetasamarillas) 
+        FROM jugador_objtab c 
+        WHERE c.equipo=j.equipo)
+    AND j.historial.TemporadaSalida IS NULL
+    )ORDER BY Equipo, golestotales;
+
+SELECT * FROM vista1; --FALTA AÑADIR VALORES EN GOLESTOTALES Y TARJETASAMARILLAS EN LA BBDD
+
+
+-- Muestrame los jugadores españoles del Real Madrid que hayan jugado un partido entero sin recibir ninguna amonestación en la temporada actual y el número de ellos (nº de partidos)
+
+CREATE OR REPLACE VIEW vista2 AS (
+SELECT j.nombre, j.apellido1 AS Apellido, (SELECT COUNT(*)
+    FROM Partido_objtab p, TABLE(p.jugadores) pp
+    WHERE pp.jugador.Id_persona = j.Id_persona
+    AND pp.minutoEntrada = 0
+    AND pp.minutoSalida IS NULL
+    AND pp.tarjetaRoja = 0
+    AND pp.tarjetaAmarilla1 = 0
+    AND pp.tarjetaAmarilla2 = 0
+    AND p.fecha BETWEEN TO_DATE('13/08/2', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
+    ) AS Partidos
+FROM Jugador_objtab j
+WHERE j.equipo.nombre LIKE 'Real Madrid CF'
+AND j.pais.nombre LIKE 'España'
+AND j.historial.temporadaSalida IS NULL
+AND j.Id_persona IN (
+    SELECT pp.jugador.Id_persona
+    FROM Partido_objtab p, TABLE(p.jugadores) pp
+    WHERE pp.minutoEntrada = 0
+    AND pp.minutoSalida IS NULL
+    AND pp.tarjetaRoja  = 0
+    AND pp.tarjetaAmarilla1 = 0
+    AND pp.tarjetaAmarilla2 = 0
+    AND p.fecha BETWEEN TO_DATE('13/08/22', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
+    )
+);
+SELECT * FROM vista2;
+
+-- De los dos equipos de LaLiga Santander cuyo estadio tengan más aforo máximo,
+--muestrame la suma de los minutos jugados de los delanteros de estos equipos con un sueldo menor a 7.000.000€ de todas las temporadas
+
+CREATE OR REPLACE VIEW vista3 AS (
+SELECT count(*) AS numJugadores, SUM(j.minutosjugados) AS MinutosTotales
+FROM jugador_objtab j
+WHERE j.equipo.ID_equipo IN (
+    SELECT ID_equipo
+    FROM equipo_objtab q
+    WHERE q.liga.nombre LIKE 'LaLiga Santander'
+    ORDER BY q.estadio.aforomaximo DESC
+    FETCH FIRST 2 ROWS ONLY)
+AND j.posicion LIKE 'Delantero'
+AND j.Sueldo <= 7000000
+);
+SELECT * FROM vista3; --FALTA AÑADIR VALORES EN MINUTOSJUGADOS EN LA BBDD
+
+
+ ----------------------------------------------------------------   
+
+--*/*/*/*/*/*/*/*/*/*/*/*/*/**/*/*/
+
+-------------PROCEDIMIENTOS JAVIER
+
+-- Este procedimiento permite realizar el transpaso de un jugador actual a otro equipo,
+-- para lo que se necesitará el jugador, el equipo y su nuevo sueldo.
+
+--(Si el equipo o jugador no existe, error.
+--Si no se introduce sueldo, se le da uno por defecto)
+
+CREATE OR REPLACE PROCEDURE Fichar_Jugador(p_jugador IN Jugador_objtab.ID_persona%TYPE, p_equipo IN Equipo_objtab.ID_equipo%TYPE, p_sueldo IN Jugador_objtab.Sueldo%TYPE)
+IS
+v_equipo Equipo_objtab.Nombre%TYPE;
+v_antiguo_equipo Equipo_objtab.Nombre%TYPE;
+v_jugador Jugador_objtab.Nombre%TYPE;
+v_sueldo Jugador_objtab.Sueldo%TYPE := p_sueldo;
+v_historial Jugador_objtab.Historial%TYPE;
+v_temp_salida Historial_objtab.TemporadaSalida%TYPE;
+
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('~ Realizando fichaje... ~');
+
+    IF p_jugador IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20010, 'Debes de indicar el id de un jugador.');
+    END IF;
+    IF p_equipo IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20020, 'Debes de indicar el id de un equipo.');
+    END IF;
+    IF p_sueldo <= 0 OR p_sueldo IS NULL THEN --Si no pasamos el sueldo o el que pasamos no es válido asignamos 5M
+        v_sueldo := 5000000;
+    END IF;
+    
+    SELECT Nombre INTO v_equipo
+    FROM Equipo_objtab
+    WHERE ID_equipo = p_Equipo;
+    
+    IF v_equipo IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
+    END IF;
+    
+    SELECT j.Nombre, j.Equipo.Nombre, j.Historial, j.Historial.TemporadaSalida INTO v_jugador, v_antiguo_equipo, v_historial, v_temp_salida
+    FROM Jugador_objtab j
+    WHERE j.ID_persona = p_jugador;
+    
+    
+    IF v_jugador IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20040, 'El jugador introducido no existe.');
+    END IF;
+    
+    IF v_historial IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20050, 'El jugador no dispone de historial.');
+    END IF;
+    
+    IF v_temp_salida IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(-20060, 'Este jugador no puede ser fichado.');
+    END IF; --Porque tiene el historial cerrado.
+    
+    
+    IF v_antiguo_equipo = v_equipo THEN
+        RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
+    END IF;
+    
+    --Actualizamos su historial con el antiguo club
+    UPDATE Historial_objtab
+    SET TemporadaSalida = 
+        CASE 
+            WHEN SYSDATE BETWEEN TO_DATE('13/08/22', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY') 
+            THEN '2022-23'
+            WHEN SYSDATE BETWEEN TO_DATE('13/08/23', 'DD/MM/YY') AND TO_DATE('04/06/24', 'DD/MM/YY') 
+            THEN '2023-24'
+            WHEN SYSDATE BETWEEN TO_DATE('13/08/24', 'DD/MM/YY') AND TO_DATE('04/06/25', 'DD/MM/YY') 
+            THEN '2024-25' 
+            WHEN SYSDATE BETWEEN TO_DATE('13/08/25', 'DD/MM/YY') AND TO_DATE('04/06/26', 'DD/MM/YY') 
+            THEN '2025-26'
+            ELSE null 
+        END
+    WHERE Id_historial = (
+        SELECT j.Historial.Id_historial 
+        FROM Jugador_objtab j 
+        WHERE j.Id_persona = p_jugador
+    );
+
+
+    --Creamos el nuevo historial
+    INSERT INTO Historial_objtab (Id_historial, equipo, TemporadaEntrada)
+    VALUES (
+        (SELECT MAX(id_historial) + 1 FROM Historial_objtab),
+        (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = v_equipo),
+        CASE 
+            WHEN SYSDATE BETWEEN TO_DATE('13/08/22', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY') 
+            THEN '2022-23'
+            WHEN SYSDATE BETWEEN TO_DATE('13/08/23', 'DD/MM/YY') AND TO_DATE('04/06/24', 'DD/MM/YY') 
+            THEN '2023-24'
+            WHEN SYSDATE BETWEEN TO_DATE('13/08/24', 'DD/MM/YY') AND TO_DATE('04/06/25', 'DD/MM/YY') 
+            THEN '2024-25' 
+            WHEN SYSDATE BETWEEN TO_DATE('13/08/25', 'DD/MM/YY') AND TO_DATE('04/06/26', 'DD/MM/YY') 
+            THEN '2025-26'
+            ELSE null 
+        END);
+    
+   
+    --Añado el nuevo jugador
+    INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales, Equipo, Historial)
+    VALUES (
+    (SELECT MAX(id_persona) + 1 FROM Jugador_objtab),
+    (SELECT j.Nombre FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Apellido1 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Apellido2 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Edad FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Pais FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Dorsal FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Posicion FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    v_sueldo,
+    (SELECT j.TarjetasRojas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.TarjetasAmarillas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.PartidosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.MinutosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.GolesTotales FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = v_equipo),
+    (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
+    );
+    
+    DBMS_OUTPUT.PUT_LINE('*** NUEVO FICHAJE!   ['|| v_jugador ||' ABANDONA ' || v_antiguo_equipo || ' Y SE INCORPORA AL ' || v_equipo || ']  !! ***');
+    
+    EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('SQLCODE: ' || SQLCODE);
+        DBMS_OUTPUT.PUT_LINE('SQLERRM: ' || SQLERRM);
+END;
+/
+
+EXECUTE Fichar_Jugador(51, 3, 6000000);
+
+
