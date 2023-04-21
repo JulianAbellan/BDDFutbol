@@ -2267,27 +2267,39 @@ IS
         
     v_presupuesto Club_objtab.presupuesto%TYPE;
     v_nuevo_aforo estadio_objtab.AforoMaximo%TYPE;
-BEGIN
+    v_liga ligafutbol_objtab.id_liga%TYPE;
+BEGIN   
+
+    --verifico si la liga existe en la tabla
+    SELECT ID_liga INTO v_liga
+    FROM LigaFutbol_objtab
+    WHERE ID_liga = p_liga;
+
+    IF SQL%NOTFOUND THEN
+        RAISE_APPLICATION_ERROR(-20010, '');
+    END IF;
     
+    DBMS_OUTPUT.PUT_LINE(' ');
     FOR r_equipo IN c_equipos_cursor LOOP
         
+        IF r_equipo.idclub IS NOT NULL THEN
         IF r_equipo.presupuestoclub < 1000000 THEN
             DBMS_OUTPUT.PUT_LINE('El club del ' || r_equipo.nombre || ' no tiene suficiente presupuesto.');
             DBMS_OUTPUT.PUT_LINE(' ');
         ELSE
             
-            --Calculamos el nuevo aforo del estadio del equipo
+            -- Calcular el nuevo aforo del estadio del equipo
             v_nuevo_aforo := r_equipo.Aforo + (FLOOR(r_equipo.presupuestoclub / 1000000) * 100);
             
-            --Actualizamos el aforo del estadio del equipo
+            -- Actualizar el aforo del estadio del equipo
             UPDATE estadio_objtab
             SET AforoMaximo = v_nuevo_aforo
             WHERE id_estadio = r_equipo.idestadio;
             
-            --Calculamos el nuevo presupuesto del club del equipo
+            -- Calcular el nuevo presupuesto del club del equipo
             v_presupuesto := r_equipo.presupuestoclub * 0.9;
             
-            --Actualizamos el presupuesto del club del equipo
+            -- Actualizar el presupuesto del club del equipo
             UPDATE club_objtab
             SET presupuesto = v_presupuesto
             WHERE id_club = r_equipo.idclub;
@@ -2296,11 +2308,17 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE(' ');
             
         END IF;
+        ELSE
+        DBMS_OUTPUT.PUT_LINE( r_equipo.nombre || ' no tiene asociado un club.');
+        DBMS_OUTPUT.PUT_LINE(' ');
+        END IF;
         
     END LOOP;
     COMMIT;
     
     EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('La liga introducida no existe.');
     WHEN OTHERS THEN
         DBMS_OUTPUT.PUT_LINE('SQLCODE: ' || SQLCODE);
         DBMS_OUTPUT.PUT_LINE('SQLERRM: ' || SQLERRM);
