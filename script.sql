@@ -774,7 +774,7 @@ INSERT INTO equipo_objtab (id_equipo, nombre, numerotitulos, presupuesto, club, 
             (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.nombre like 'LaLiga Santander'));
 /
 INSERT INTO equipo_objtab (id_equipo, nombre, numerotitulos, presupuesto, club, estadio, entrenador, liga)
-    VALUES (2, 'Real Madrid CF', 34, 900000, (SELECT REF(c) FROM club_objtab c WHERE c.nombre like 'Real Madrid'),
+    VALUES (2, 'Real Madrid CF', 34, 900000, (SELECT REF(c) FROM club_objtab c WHERE c.nombre like 'Real Madrid CF'),
             (SELECT REF(e) FROM estadio_objtab e WHERE e.nombre = 'Santiago Bernabéu'),
             (SELECT REF(e) FROM entrenador_objtab e WHERE e.nombre like 'Carlo'),
             (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.nombre like 'LaLiga Santander'));
@@ -2100,12 +2100,10 @@ SELECT * FROM vista3; --FALTA AÑADIR VALORES EN MINUTOSJUGADOS EN LA BBDD
 -------------PROCEDIMIENTOS JAVIER
 
 -- Este procedimiento permite realizar el transpaso de un jugador actual a otro equipo,
--- para lo que se necesitará el jugador, el equipo y su nuevo sueldo.
+-- para lo que se necesitará el jugador, el equipo, su nuevo sueldo y el precio del fichaje.
 
---(Si el equipo o jugador no existe, error.
---Si no se introduce sueldo, se le da uno por defecto)
 
-CREATE OR REPLACE PROCEDURE Fichar_Jugador(p_jugador IN Jugador_objtab.ID_persona%TYPE, p_equipo IN Equipo_objtab.ID_equipo%TYPE, p_sueldo IN Jugador_objtab.Sueldo%TYPE)
+CREATE OR REPLACE PROCEDURE Fichar_Jugador(p_jugador IN Jugador_objtab.ID_persona%TYPE, p_equipo IN Equipo_objtab.ID_equipo%TYPE, p_sueldo IN Jugador_objtab.Sueldo%TYPE, p_precio IN Equipo_objtab.Presupuesto%TYPE)
 IS
 v_equipo Equipo_objtab.Nombre%TYPE;
 v_antiguo_equipo Equipo_objtab.Nombre%TYPE;
@@ -2113,6 +2111,7 @@ v_jugador Jugador_objtab.Nombre%TYPE;
 v_sueldo Jugador_objtab.Sueldo%TYPE := p_sueldo;
 v_historial Jugador_objtab.Historial%TYPE;
 v_temp_salida Historial_objtab.TemporadaSalida%TYPE;
+v_presupuesto Equipo_objtab.Presupuesto%TYPE;
 
 BEGIN
     DBMS_OUTPUT.PUT_LINE('~ Realizando fichaje... ~');
@@ -2126,13 +2125,21 @@ BEGIN
     IF p_sueldo <= 0 OR p_sueldo IS NULL THEN --Si no pasamos el sueldo o el que pasamos no es válido asignamos 5M
         v_sueldo := 5000000;
     END IF;
+    IF p_precio < 0 OR p_precio IS NULL THEN
+         RAISE_APPLICATION_ERROR(-20090, 'Precio por el transpaso no válido.');
+    END IF;
     
-    SELECT Nombre INTO v_equipo
+    SELECT Nombre, Presupuesto INTO v_equipo, v_presupuesto
     FROM Equipo_objtab
     WHERE ID_equipo = p_Equipo;
     
+
     IF v_equipo IS NULL THEN
         RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
+    END IF;
+        
+    IF v_presupuesto < p_precio THEN
+        RAISE_APPLICATION_ERROR(-20080, 'El ' || v_equipo || ' no tiene suficiente presupuesto.');
     END IF;
     
     SELECT j.Nombre, j.Equipo.Nombre, j.Historial, j.Historial.TemporadaSalida INTO v_jugador, v_antiguo_equipo, v_historial, v_temp_salida
@@ -2156,6 +2163,7 @@ BEGIN
     IF v_antiguo_equipo = v_equipo THEN
         RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
     END IF;
+    
     
     --Actualizamos su historial con el antiguo club
     UPDATE Historial_objtab
@@ -2199,7 +2207,7 @@ BEGIN
     --Añado el nuevo jugador
     INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales, Equipo, Historial)
     VALUES (
-    (SELECT MAX(id_persona) + 1 FROM Jugador_objtab),
+    (SELECT COALESCE(MAX(TO_NUMBER(id_persona)), 0) + 1 FROM jugador_objtab),
     (SELECT j.Nombre FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
     (SELECT j.Apellido1 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
     (SELECT j.Apellido2 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
@@ -2213,11 +2221,15 @@ BEGIN
     (SELECT j.PartidosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
     (SELECT j.MinutosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
     (SELECT j.GolesTotales FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = v_equipo),
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.ID_equipo = p_equipo),
     (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
     );
     
-    DBMS_OUTPUT.PUT_LINE('*** NUEVO FICHAJE!   ['|| v_jugador ||' ABANDONA ' || v_antiguo_equipo || ' Y SE INCORPORA AL ' || v_equipo || ']  !! ***');
+    UPDATE Equipo_objtab
+    SET Presupuesto = Presupuesto - p_precio
+    WHERE ID_equipo = p_equipo;
+    
+    DBMS_OUTPUT.PUT_LINE('*** NUEVO FICHAJE!   ['|| v_jugador ||' ABANDONA ' || v_antiguo_equipo || ' Y SE INCORPORA AL ' || v_equipo || ' Por ' || p_precio || '€]  !! ***');
     
     EXCEPTION
     WHEN OTHERS THEN
@@ -2226,6 +2238,75 @@ BEGIN
 END;
 /
 
-EXECUTE Fichar_Jugador(51, 3, 6000000);
+EXECUTE Fichar_Jugador(51, 3, 6000000, 111);
 
 
+
+-- Debido a un nuevo reglamento de la FIFA, todos los estadios de una misma liga
+--tinen que aumentar el aforo máximo de su estadio dependiendo del presupuesto del club.
+--Dada una liga, por cada 1 millón de presupuesto del club, aumenta en 100 el aforo de los estadios de todos los equipos de esa liga,
+-- y substrae en un 10% el presupuesto total del club por ello.
+
+
+
+CREATE OR REPLACE PROCEDURE actualizar_aforo_y_presupuesto(
+    p_liga IN LigaFutbol_objtab.ID_liga%TYPE
+)
+IS
+
+    CURSOR c_equipos_cursor IS
+        SELECT e.id_equipo, e.nombre,
+        e.estadio.AforoMaximo as Aforo,
+        e.estadio.id_estadio as idestadio,
+        e.estadio.nombre as estadionombre,
+        e.club.presupuesto as presupuestoclub,
+        e.club.id_club as idclub
+        FROM equipo_objtab e
+        WHERE e.Liga.ID_liga = p_liga
+        FOR UPDATE;
+        
+    v_presupuesto Club_objtab.presupuesto%TYPE;
+    v_nuevo_aforo estadio_objtab.AforoMaximo%TYPE;
+BEGIN
+    
+    FOR r_equipo IN c_equipos_cursor LOOP
+        
+        IF r_equipo.presupuestoclub < 1000000 THEN
+            DBMS_OUTPUT.PUT_LINE('El club del ' || r_equipo.nombre || ' no tiene suficiente presupuesto.');
+            DBMS_OUTPUT.PUT_LINE(' ');
+        ELSE
+            
+            --Calculamos el nuevo aforo del estadio del equipo
+            v_nuevo_aforo := r_equipo.Aforo + (FLOOR(r_equipo.presupuestoclub / 1000000) * 100);
+            
+            --Actualizamos el aforo del estadio del equipo
+            UPDATE estadio_objtab
+            SET AforoMaximo = v_nuevo_aforo
+            WHERE id_estadio = r_equipo.idestadio;
+            
+            --Calculamos el nuevo presupuesto del club del equipo
+            v_presupuesto := r_equipo.presupuestoclub * 0.9;
+            
+            --Actualizamos el presupuesto del club del equipo
+            UPDATE club_objtab
+            SET presupuesto = v_presupuesto
+            WHERE id_club = r_equipo.idclub;
+            
+            DBMS_OUTPUT.PUT_LINE(r_equipo.nombre || ' [ESTADIO: '|| r_equipo.estadionombre || ' AFORO: ' || r_equipo.Aforo || ' ---> ' || v_nuevo_aforo || ' | PRESUPUESTO CLUB: ' || r_equipo.presupuestoclub || ' --> ' || v_presupuesto || '].');
+            DBMS_OUTPUT.PUT_LINE(' ');
+            
+        END IF;
+        
+    END LOOP;
+    COMMIT;
+    
+    EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('SQLCODE: ' || SQLCODE);
+        DBMS_OUTPUT.PUT_LINE('SQLERRM: ' || SQLERRM);
+        ROLLBACK;
+        RAISE;
+END;
+/
+
+EXECUTE actualizar_aforo_y_presupuesto(1);
