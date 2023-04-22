@@ -2328,3 +2328,58 @@ END;
 /
 
 EXECUTE actualizar_aforo_y_presupuesto(1);
+
+-- Disparadores
+
+--Disparador que controle que un jugador puede ser insertado en un nuevo equipo
+--(controlando que no supere el tamaño máximo permitido de jugadores por equipo)
+-- y que se le asigne un historial con ese equipo automáticamente.
+
+CREATE OR REPLACE TRIGGER tr_insertar_jugador
+BEFORE INSERT ON jugador_objtab
+FOR EACH ROW
+DECLARE
+    v_num_jugadores NUMBER;
+    v_temporada Historial_objtab.TemporadaEntrada%TYPE;
+    v_id_historial Historial_objtab.Id_historial%TYPE;
+    v_anio NUMBER;
+    v_mes NUMBER;
+BEGIN
+    -- Compruebo que el equipo al que quiero añadir el jugador tiene menos de 25 jugadores
+    SELECT COUNT(*) INTO v_num_jugadores
+    FROM Jugador_objtab j
+    WHERE j.Equipo = :NEW.Equipo
+    AND j.Historial.TemporadaSalida IS NULL;
+    --Lanzo error si no puede ser añadido al equipo.    
+    IF v_num_jugadores >= 25 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'El equipo no puede inscribir más jugadores a la liga.');
+    END IF;
+    
+    --Declaro valores para el Historial
+    SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
+    
+    IF v_mes >= 7 THEN
+        v_temporada := TO_CHAR(v_anio) || '-' || SUBSTR(TO_CHAR(v_anio+1), 3, 2);
+    ELSE
+        v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
+    END IF;
+    
+    SELECT MAX(id_historial) + 1 INTO v_id_historial FROM Historial_objtab; 
+    
+    --Creo el nuevo historial que va a ir asociado al jugador    
+    INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
+    VALUES (v_id_historial, :new.Equipo, v_temporada);
+    
+    SELECT REF(h) INTO :NEW.Historial FROM Historial_objtab h WHERE h.id_historial = v_id_historial;
+    
+    -- Añado el historial al jugador que acabo de añadir
+    UPDATE Jugador_objtab j
+    SET j.Historial = :NEW.Historial
+    WHERE Id_persona = :NEW.Id_persona;
+END;
+/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+    VALUES(132, 'pelusi', 'natillas', null, 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Alemania'), 1, 'Portero', 9000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF')
+);/
