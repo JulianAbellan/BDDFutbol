@@ -136,7 +136,7 @@ CREATE OR REPLACE TYPE Jugador_objtyp UNDER Persona_objtyp(
     TarjetasRojas NUMBER(3),
     TarjetasAmarillas NUMBER(3),
     PartidosJugados NUMBER(3),
-    MinutosJugados NUMBER(2),
+    MinutosJugados NUMBER(10),
     GolesTotales NUMBER(3),
     Equipo REF Equipo_objtyp,
     Historial REF Historial_objtyp
@@ -1589,19 +1589,22 @@ SELECT p.*, pre.fechacese, pre.fechaposesion, (pre.fechacese - pre.fechaposesion
 
 
 --Al jugar un partido actualizar el número de minutos jugados de cada jugador
-CREATE OR REPLACE TRIGGER ActualizarJugador
-FOR INSERT ON Partido_objtab
-COMPOUND TRIGGER
 
+CREATE OR REPLACE TRIGGER ActualizarJugador
+FOR UPDATE ON Partido_objtab
+COMPOUND TRIGGER
     v_apellido1 VARCHAR2(20);
+    v_idpersona VARCHAR2(20);
     v_minutoentrada NUMBER(2);
     v_minutosalida NUMBER(2);
-    v_tarjetaroja NUMBER(3);
+    v_tarjetaroja NUMBER(1);
     v_tarjetaamarilla1 NUMBER(1);
     v_tarjetaamarilla2 NUMBER(1);
     v_goles NUMBER(2);
+    v_partido_id2 NUMBER(10);    
+    v_partido_id NUMBER(10);        
     
-    v_partido_id NUMBER(10);    
+    variabletemporal NUMBER(10);
     TYPE TPartido IS TABLE OF Partido_objtab.ID_Partido%TYPE INDEX BY BINARY_INTEGER;
     tablapartido TPartido;
     IND BINARY_INTEGER:=0;
@@ -1611,10 +1614,8 @@ BEFORE EACH ROW IS BEGIN
     tablapartido(IND) := :NEW.ID_Partido;
 END BEFORE EACH ROW;
 
-
 AFTER STATEMENT IS
 BEGIN   
-    
     FOR i IN 1..IND LOOP
     
     v_partido_id := tablapartido(i);
@@ -1623,36 +1624,37 @@ BEGIN
     
     FOR vi IN (
     SELECT p.ID_partido AS idpartido, j.Jugador.ID_Persona AS idpersona, j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS minutoentrada, 
-    j.MinutoSalida AS minutosalida, j.TarjetaRoja AS tarjetaroja, j.TarjetaAmarilla1 AS amarilla1, j.TarjetaAmarilla2 AS amarilla2, j.Goles AS goles
+    j.MinutoSalida AS minutosalida, j.TarjetaRoja AS tarjetaroja, j.TarjetaAmarilla1 AS amarilla1, j.TarjetaAmarilla2 AS amarilla2, j.Goles AS goles,
+    p.resultado.MinutosPrimera AS minprimera, p.resultado.MinutosSegunda AS minsegunda
     FROM partido_objtab p, TABLE(p.jugadores) j 
     WHERE p.ID_Partido = v_partido_id) loop
     
-    DBMS_OUTPUT.put_line (vi.idpartido || '  ' || vi.idpersona || '  ' || vi.apellido || '  ' || vi.minutoentrada || '  ' || vi.minutosalida || '  ' || vi.tarjetaroja || '  ' || vi.amarilla1 || '  ' || vi.amarilla2 || '  ' || vi.goles);
+    DBMS_OUTPUT.put_line (vi.idpartido || '  ' || vi.idpersona || '  ' || vi.apellido || '  ' || vi.minutoentrada || '  ' || 
+    vi.minutosalida || '  ' || vi.tarjetaroja || '  ' || vi.amarilla1 || '  ' || vi.amarilla2 || '  ' || vi.goles);
     
-    if ((SELECT TarjetasRojas FROM Jugador_objtab WHERE ID_Persona = vi.idpersona) IS NOT NULL AND vi.tarjetaroja IS NOT NULL ) then
-        UPDATE jugador_objtab SET TarjetasRojas = (TarjetasRojas + vi.tarjetaroja) WHERE ID_Persona = vi.idpersona;
-    ELSIF vi.tarjetaroja IS NOT NULL THEN
-        UPDATE jugador_objtab SET TarjetasRojas = vi.tarjetaroja WHERE ID_Persona = vi.idpersona;    
-    END IF;
-    
-    if ((SELECT TarjetasAmarillas FROM Jugador_objtab WHERE ID_Persona = vi.idpersona) IS NOT NULL AND vi.amarilla1 IS NOT NULL) then
-        UPDATE jugador_objtab SET TarjetasRojas = (TarjetasRojas + vi.tarjetaroja) WHERE ID_Persona = vi.idpersona;
-    ELSIF vi.tarjetaroja IS NOT NULL THEN
-        UPDATE jugador_objtab SET TarjetasRojas = vi.tarjetaroja WHERE ID_Persona = vi.idpersona;    
-    END IF;
-        
     UPDATE jugador_objtab set 
+        TarjetasRojas = (TarjetasRojas + vi.tarjetaroja),
         TarjetasAmarillas = (TarjetasAmarillas + vi.amarilla1 + vi.amarilla2),
         PartidosJugados = (PartidosJugados + 1),
         GolesTotales = (GolesTotales + vi.goles)
         WHERE ID_Persona = vi.idpersona;
-    
-    DBMS_OUTPUT.put_line ('Se ha actualizado el jugador ' + vi.idpersona);
-    
-    
+
+    DBMS_OUTPUT.put_line ('Se ha actualizado el jugador ' || vi.idpersona);
+           
+    if (vi.minutosalida is NULL) then
+            DBMS_OUTPUT.put_line (vi.minprimera || ' ' || vi.minsegunda || ' ' ||  vi.minutoentrada);
+            
+            DBMS_OUTPUT.put_line ( '1 ' ||vi.idpersona || ' ' || (vi.minprimera + vi.minsegunda - vi.minutoentrada));
+            UPDATE jugador_objtab set MinutosJugados = MinutosJugados + vi.minprimera + vi.minsegunda - vi.minutoentrada WHERE ID_persona = vi.idpersona;
+        else
+            SELECT MinutosJugados INTO variabletemporal FROM Jugador_objtab WHERE ID_Persona = vi.idpersona;
+            variabletemporal := variabletemporal + vi.minutosalida - vi.minutoentrada;
+            DBMS_OUTPUT.put_line ( '2 ' ||vi.idpersona || ' ' || variabletemporal);
         
+            UPDATE jugador_objtab set MinutosJugados = MinutosJugados + vi.minutosalida - vi.minutoentrada WHERE ID_persona = vi.idpersona;
+        end if;           
+           
     END LOOP;
-    
     END LOOP;    
     
 END AFTER STATEMENT;
@@ -1660,6 +1662,7 @@ END;
 /
 
 SET SERVEROUTPUT ON;
+
 
 
 -- 
