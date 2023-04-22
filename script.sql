@@ -263,6 +263,11 @@ CREATE TABLE Jugador_objtab OF Jugador_objtyp (
     Nombre NOT NULL,
     Apellido1 NOT NULL,
     Edad NOT NULL,
+    TarjetasRojas NOT NULL,
+    TarjetasAmarillas NOT NULL,
+    PartidosJugados NOT NULL,
+    MinutosJugados NOT NULL,
+    GolesTotales NOT NULL,
     CHECK (Edad >= 18),
     CHECK (Dorsal >= 1 AND Dorsal <= 99),
     CHECK (Posicion IN ('Delantero','Centrocampista','Defensa','Portero')),
@@ -562,182 +567,182 @@ INSERT INTO equipo_objtab (id_equipo, nombre, numerotitulos, presupuesto, club, 
             (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.nombre like 'Premier League'));
 /
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES (100, 'Thibaut', 'Courtois', null, 31, (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Bélgica'), 1, 'Portero', 9000000,
-            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES (101, 'Daniel', 'Carvajal', 'Ramos', 31,
     (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'España'),
-    2, 'Defensa', 6500000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+    2, 'Defensa', 6500000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES (102, 'Jesús', 'Vallejo', 'Lázaro', 27,
     (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'España'),
-    5, 'Defensa', 3000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+    5, 'Defensa', 3000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES (103, 'José Ignacio', 'Fernández', 'Iglesias', 33,
     (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'España'),
-    6, 'Defensa', 5000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+    6, 'Defensa', 5000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES (104, 'Álvaro', 'Odriozola', 'Pérez', 28,
     (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'España'),
-    16, 'Defensa', 1000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+    16, 'Defensa', 1000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES (105, 'Lucas', 'Vázquez', 'Iglesias', 32,
     (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'España'),
-    17, 'Defensa', 3000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+    17, 'Defensa', 3000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
  /  
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES (106, 'Toni', 'Kroos', null , 33,
     (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Alemania'),
-    8, 'Centrocampista', 7000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+    8, 'Centrocampista', 7000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
    
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES (107, 'Luka', 'Modric', null , 38,
     (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Croacia'),
-    10, 'Centrocampista', 8000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+    10, 'Centrocampista', 8000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES (108, 'Vinicius', 'de Oliveira', 'Junior' , 23 , (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Brasil'),
-     20, 'Delantero', 8000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+     20, 'Delantero', 8000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
 VALUES (109, 'Rodrygo', 'Goes', null , 22 , (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Brasil'),
-     21, 'Delantero', 8500000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+     21, 'Delantero', 8500000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
 VALUES (110, 'Mariano', 'Díaz', 'Mejía' , 30 , (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'España'),
-     24, 'Delantero', 1200000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+     24, 'Delantero', 1200000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
 VALUES (111, 'Eduardo', 'Camavinga', null, 21 , (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Francia'),
-     12, 'Centrocampista', 5500000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+     12, 'Centrocampista', 5500000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
 VALUES (112, 'Aurélien ', 'Tchouameni', null, 23 , (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Francia'),
-     18, 'Centrocampista', 6000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+     18, 'Centrocampista', 6000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
 VALUES (113, 'Éder', 'Gabriel', 'Militão', 25 , (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Brasil'),
-     3, 'Defensa', 7800000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+     3, 'Defensa', 7800000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
 VALUES (114, 'Antonio ', 'Rüdiger  ', null , 22 , (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Alemania'),
-     22, 'Defensa',6500000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));
+     22, 'Defensa',6500000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);
 /
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
 VALUES (115, 'David  ', 'Alaba', null , 31 , (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Austria'),
-     4, 'Defensa', 8000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'));/
+     4, 'Defensa', 8000000, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0);/
 
 INSERT INTO historial_objtab (Id_historial, equipo, TemporadaEntrada)
     VALUES (0001, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'FC Barcelona'), '2021-22');/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(50, 'Marc-André', 'ter Stegen', null, 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Alemania'), 1, 'Portero', 9000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, Historial)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, Historial, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(51, 'Ronald', 'Araujo', 24, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Uruguay'), 4, 'Defensa', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = 0001)
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = 0001), , 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(52, 'Andreas', 'Christensen', 27, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Dinamarca'), 15, 'Defensa', 6000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), , 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(53, 'Marcos', 'Alonso', 'Mendoza', 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 17, 'Defensa', 5000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(54, 'Jules', 'Olivier', 'Koundé', 24, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Francia'), 23, 'Defensa', 8000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(55, 'Eric', 'García', 'Martret', 22, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 24, 'Defensa', 3000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(56, 'Jordi', 'Alba', 'Ramos', 33, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 18, 'Defensa', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(57, 'Sergio', 'Busquets', 'Burgos', 34, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 5, 'Centrocampista', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(58, 'Pablo', 'Martín', 'Gavira', 18, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 6, 'Centrocampista', 6500000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(59, 'Pedro', 'González', 'López', 20, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 8, 'Centrocampista', 9500000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
 INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
     VALUES(60, 'Frenkie', 'de Jong', 25, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Países Bajos'), 21, 'Centrocampista', 9000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(61, 'Sergi', 'Roberto', 'Carnicer', 31, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 20, 'Centrocampista', 6500000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(62, 'Ousmane', 'Dembélé', null, 25, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Francia'), 7, 'Delantero', 9500000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, , TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(63, 'Robert', 'Lewandowski', 34, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Polonia'), 9, 'Delantero', 11000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(64, 'Anssumane', 'Fati', 'Vieira', 20, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 10, 'Delantero', 7500000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(65, 'Ferran', 'Torres', 'García', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 11, 'Delantero', 6500000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(67, 'Raphael', 'Dias', 'Belloli', 26, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Brasil'), 22, 'Delantero', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
 
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(66, 'Ignacio', 'Peña', 'Sotorres', 24, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 13, 'Portero', 1500000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
 
@@ -745,195 +750,197 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
 
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(70, 'Jan', 'Oblak', null , 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Eslovenia'), 13, 'Portero', 8000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(71, 'José', 'Giménez', 'López' , 28, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Uruguay'), 2, 'Defensa', 5000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(72, 'Mario', 'Hermoso', null , 27, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 22, 'Defensa', 2000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(73, 'Stefan', 'Savic', null , 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Eslovenia'), 15, 'Defensa', 3000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(74, 'Nahuel', 'Molina', null , 25, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Argentina'), 16, 'Defensa', 3000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(75, 'Rodrigo', 'de Paul', null , 28, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Argentina'), 5, 'Centrocampista', 3000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(76, 'Koke', 'Resurrección', null , 31, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 6, 'Centrocampista', 4000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(77, 'Marcos', 'Llorente', null , 28, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 14, 'Centrocampista', 6000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(78, 'Álvaro', 'Morata', null , 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 19, 'Delantero', 9000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(79, 'Antoine', 'Griezmann', null , 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Francia'), 8, 'Delantero', 10000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(80, 'Memphis', 'Depay', null , 29, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Países Bajos'), 9, 'Delantero', 8000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(81, 'Ángel', 'Correa', null , 28, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Argentina'), 10, 'Delantero', 8000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Atlético de Madrid'), 0, 0, 0, 0, 0
 );/
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(82, 'Ederson', 'Santana', 'Moraes' , 29, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Brasil'), 31, 'Portero', 10000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(83, 'Rúben', 'Dias', 'Alves' , 25, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 6, 'Defensa', 10000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(84, 'Nathan', 'Aké', null , 28, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Países Bajos'), 3, 'Defensa', 8000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(85, 'Aymeric', 'Laporte', null , 28, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 14, 'Defensa', 10000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(86, 'Kyle', 'Walker', null , 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 2, 'Defensa', 9000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(87, 'Kevin', 'de Bruyne', null , 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Bélgica'), 17, 'Centrocampista', 12000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(88, 'Bernando', 'Silva', 'dos Santos' , 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Centrocampista', 12000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(89, 'Ilkay', 'Gündogan', null , 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Alemania'), 8, 'Centrocampista', 11000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(90, 'Phil', 'Foden', null , 22, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 47, 'Delantero', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(91, 'Erling', 'Haaland', null , 22, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Noruega'), 9, 'Delantero', 15000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(92, 'Jack', 'Grealish', null , 27, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 10, 'Delantero', 10000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(93, 'Julián', 'Álvarez', 'Frías' , 21, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Argentina'), 19, 'Delantero', 6000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Manchester City'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(94, 'Alisson', 'Becker', 'Gonçalves' , 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Brasil'), 19, 'Portero', 8000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(95, 'Virgil', 'van Dijk', null , 31, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Países Bajos'), 19, 'Defensa', 10000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(96, 'Joe', 'Gomez', null , 25, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 2, 'Defensa', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(97, 'Trent', 'Alexander-Arnold', null , 24, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 66, 'Defensa', 9000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(98, 'Ibrahima', 'Konaté', null , 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Francia'), 5, 'Defensa', 9000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(99, 'Andrew', 'Robertson', null , 29, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Escocia'), 26, 'Defensa', 9000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(1000, 'Thiago', 'Alcántara', 'Rivera' , 32, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'España'), 6, 'Centrocampista', 8000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(10001, 'Curtis', 'Jones', null, 22, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 17, 'Centrocampista', 8000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(1002, 'James', 'Milner', null, 37, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra'), 7, 'Centrocampista', 8000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(1003, 'Mohamed', 'Salah', null, 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Egipto'), 11, 'Centrocampista', 11000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(1004, 'Darwin', 'Núñez', 'Olivera', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Uruguay'), 27, 'Delantero', 10000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetaRojas, TarjetaAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(1005, 'Diogo', 'Jota', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
+
+
 
 INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
     VALUES (1, '2022-23', 62, 20, 2, 2, 46, 8,
@@ -994,12 +1001,6 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
             ));/
 
 
-
-
-
-
-
-
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, jugadores, arbitros)
     VALUES (2, SYSDATE, 21,
             (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Real Madrid CF'),
@@ -1037,9 +1038,6 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
                         Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
                         Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
             ));/
-
-
-
 
 
 
@@ -1128,7 +1126,7 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
             (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Manchester City'),
             (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Liverpool'),  
             nt_juega_typ(
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Ederson')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Santana')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dias' AND j.Nombre = 'Rúben')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Aké')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Laporte')),
@@ -1180,7 +1178,7 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Jota')),
                      
 
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Ederson')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Santana')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dias' AND j.Nombre = 'Rúben')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Aké')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Laporte')),
@@ -1283,66 +1281,78 @@ SELECT p.*, pre.fechacese, pre.fechaposesion, (pre.fechacese - pre.fechaposesion
 
 
 --Al jugar un partido actualizar el número de minutos jugados de cada jugador
+CREATE OR REPLACE TRIGGER ActualizarJugador
+FOR INSERT ON Partido_objtab
+COMPOUND TRIGGER
 
-CREATE OR REPLACE TRIGGER MINJUGADOS
-BEFORE INSERT OR UPDATE ON Partido_objtab
-FOR EACH ROW
-DECLARE
+    v_apellido1 VARCHAR2(20);
+    v_minutoentrada NUMBER(2);
+    v_minutosalida NUMBER(2);
+    v_tarjetaroja NUMBER(3);
+    v_tarjetaamarilla1 NUMBER(1);
+    v_tarjetaamarilla2 NUMBER(1);
+    v_goles NUMBER(2);
+    
+    v_partido_id NUMBER(10);    
+    TYPE TPartido IS TABLE OF Partido_objtab.ID_Partido%TYPE INDEX BY BINARY_INTEGER;
+    tablapartido TPartido;
+    IND BINARY_INTEGER:=0;
 
-    SolucionJugador NUMBER(2);
-    apellidojugador VARCHAR(20);
-        
-BEGIN
-    for vi in (SELECT j.Jugador.ID_Persona AS apellido, j.MinutoEntrada AS jugentrada, j.MinutoSalida AS jugsalida, 
-                        p.resultado.MinutosPrimera AS minprimera, p.resultado.MinutosSegunda AS minsegunda, j.Goles AS Goles
-                FROM Partido_objtab p, TABLE(p.jugadores) j) loop
-        
-        if (vi.jugsalida is NULL) then
-            SolucionJugador := vi.minprimera + vi.minsegunda - vi.jugentrada;                        
-        else
-            SolucionJugador := vi.jugsalida - vi.jugentrada;
-        end if;
-        DBMS_OUTPUT.put_line (vi.apellido || ' ' || SolucionJugador || ' ' || vi.Goles);
-        
+BEFORE EACH ROW IS BEGIN
+    IND := IND + 1;
+    tablapartido(IND) := :NEW.ID_Partido;
+END BEFORE EACH ROW;
 
+
+AFTER STATEMENT IS
+BEGIN   
+    
+    FOR i IN 1..IND LOOP
+    
+    v_partido_id := tablapartido(i);
+    
+    DBMS_OUTPUT.put_line ('Has insertado el partido: ' || v_partido_id);
+    
+    FOR vi IN (
+    SELECT p.ID_partido AS idpartido, j.Jugador.ID_Persona AS idpersona, j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS minutoentrada, 
+    j.MinutoSalida AS minutosalida, j.TarjetaRoja AS tarjetaroja, j.TarjetaAmarilla1 AS amarilla1, j.TarjetaAmarilla2 AS amarilla2, j.Goles AS goles
+    FROM partido_objtab p, TABLE(p.jugadores) j 
+    WHERE p.ID_Partido = v_partido_id) loop
+    
+    DBMS_OUTPUT.put_line (vi.idpartido || '  ' || vi.idpersona || '  ' || vi.apellido || '  ' || vi.minutoentrada || '  ' || vi.minutosalida || '  ' || vi.tarjetaroja || '  ' || vi.amarilla1 || '  ' || vi.amarilla2 || '  ' || vi.goles);
+    
+    if ((SELECT TarjetasRojas FROM Jugador_objtab WHERE ID_Persona = vi.idpersona) IS NOT NULL AND vi.tarjetaroja IS NOT NULL ) then
+        UPDATE jugador_objtab SET TarjetasRojas = (TarjetasRojas + vi.tarjetaroja) WHERE ID_Persona = vi.idpersona;
+    ELSIF vi.tarjetaroja IS NOT NULL THEN
+        UPDATE jugador_objtab SET TarjetasRojas = vi.tarjetaroja WHERE ID_Persona = vi.idpersona;    
+    END IF;
+    
+    if ((SELECT TarjetaAmarillas FROM Jugador_objtab WHERE ID_Persona = vi.idpersona) IS NOT NULL AND vi.amarilla1 IS NOT NULL) then
+        UPDATE jugador_objtab SET TarjetasRojas = (TarjetasRojas + vi.tarjetaroja) WHERE ID_Persona = vi.idpersona;
+    ELSIF vi.tarjetaroja IS NOT NULL THEN
+        UPDATE jugador_objtab SET TarjetasRojas = vi.tarjetaroja WHERE ID_Persona = vi.idpersona;    
+    END IF;
         
-        UPDATE jugador_objtab set MinutosJugados = SolucionJugador, GolesTotales = GolesTotales + vi.Goles WHERE ID_persona = vi.persona;
+    UPDATE jugador_objtab set 
+        TarjetasAmarillas = (TarjetasAmarillas + vi.amarilla1 + vi.amarilla2),
+        PartidosJugados = (PartidosJugados + 1),
+        GolesTotales = (GolesTotales + vi.goles)
+        WHERE ID_Persona = vi.idpersona;
+    
+    DBMS_OUTPUT.put_line ('Se ha actualizado el jugador ' + vi.idpersona);
+    
+    
         
-    end loop;
+    END LOOP;
+    
+    END LOOP;    
+    
+END AFTER STATEMENT;
 END;
+/
 
- SET serveroutput ON
+SET SERVEROUTPUT ON;
 
-
-SELECT j.Jugador.apellido1, SUM(j.Goles)
-    FROM partido_objtab p, TABLE(p.jugadores) j
-    GROUP BY (j.Jugador.apellido1)
-
-                
-DECLARE
-
-    SolucionJugador NUMBER(2);
-    apellidojugador VARCHAR(20);
-    GolesJugador NUMBER(2);
-        
-BEGIN
-    for vi in (SELECT j.Jugador.ID_persona persona, j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS jugentrada, j.MinutoSalida AS jugsalida, 
-                        p.resultado.MinutosPrimera AS minprimera, p.resultado.MinutosSegunda AS minsegunda, j.Goles AS Goles
-                FROM Partido_objtab p, TABLE(p.jugadores) j) loop
-        
-        if (vi.jugsalida is NULL) then
-            SolucionJugador := vi.minprimera + vi.minsegunda - vi.jugentrada;                        
-        else
-            SolucionJugador := vi.jugsalida - vi.jugentrada;
-        end if;
-        DBMS_OUTPUT.put_line (vi.apellido || ' ' || SolucionJugador || ' ' || vi.Goles);
-        
-            
-        UPDATE jugador_objtab set MinutosJugados = MinutosJugados + SolucionJugador, GolesTotales = GolesTotales + vi.Goles WHERE ID_persona = vi.persona;
-        
-    end loop;
-END;                
-                
 
 -- 
 --Al jugar un partido actualizar la clasificación del equipo
@@ -1363,15 +1373,41 @@ END;
 
 
 --funcion que calcule el numero de minutos de cada jugador
-/*
-CREATE OR REPLACE PROCEDURE MinutoSalidaJugador AS
+CREATE OR REPLACE PROCEDURE MinutoSalidaJugador IS
+
+    SolucionJugador NUMBER(10);
+    minutos jugador_objtab.MinutosJugados%TYPE;
 
 BEGIN
 
+for vi in (    
+    SELECT j.Jugador.ID_persona idpersona, j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS jugentrada, j.MinutoSalida AS jugsalida, 
+                        p.resultado.MinutosPrimera AS minprimera, p.resultado.MinutosSegunda AS minsegunda, j.Goles AS Goles
+    FROM partido_objtab p, TABLE(p.jugadores) j
+    WHERE j.jugador.ID_persona IS NOT NULL
+    ORDER BY j.jugador.ID_persona
+    ) loop
+ 
+    select MinutosJugados INTO minutos FROM jugador_objtab j WHERE ID_persona = vi.idpersona;
+    
+    if (vi.jugsalida is NULL) then
+            SolucionJugador := vi.minprimera + vi.minsegunda - vi.jugentrada;                        
+        else
+            SolucionJugador := vi.jugsalida - vi.jugentrada;
+        end if;
+        
+    --DBMS_OUTPUT.put_line (vi.idpersona || ' ' || SolucionJugador);
+          
+    IF minutos IS null THEN
+        UPDATE jugador_objtab set MinutosJugados = SolucionJugador WHERE ID_persona = vi.idpersona;
+    ELSE
+        UPDATE jugador_objtab set MinutosJugados = MinutosJugados + SolucionJugador WHERE ID_persona = vi.idpersona;
+    END IF;
+    
+    end loop;
+END;    
 
 
-END;
-*/
 
 --funcion que visualice la clasificación 
 
