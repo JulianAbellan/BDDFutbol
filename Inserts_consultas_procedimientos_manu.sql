@@ -355,6 +355,7 @@ ORDER BY Amonestaciones DESC;
 --------- PROCEDIMIENTOS MANOLETE  ---------
 --------------------------------------------
 
+-- PROCEDIMIENTO 1
 SET SERVEROUTPUT ON;
 
 CREATE OR REPLACE PROCEDURE Clasificacion_temporada(vdivision IN LigaFutbol_objtab.Division%TYPE, vpais IN Pais_objtab.nombre%TYPE)
@@ -450,3 +451,128 @@ BEGIN
 END;
 
 EXECUTE Clasificacion_temporada(1,'España');
+
+
+
+
+--PROCEDIMIENTO 2
+
+SET SERVEROUTPUT ON;
+
+CREATE OR REPLACE PROCEDURE RecorteAumentoPresupuestario(vclub IN Club_objtab.nombre%type DEFAULT null, vclub2 IN Club_objtab.nombre%type DEFAULT null)
+IS
+    TYPE Jugadores_TAB IS TABLE OF REF Jugador_objtyp;
+    TJugadores Jugadores_TAB;
+    VNombre Jugador_objtab.Nombre%type;
+    VApellido Jugador_objtab.Apellido1%type;
+    VSueldo Jugador_objtab.Sueldo%type;
+    VPresi Presidente_objtab.Nombre%type;
+    VPresi2 Presidente_objtab.Nombre%type;
+    VCheck NUMBER(1);
+    VCheck2 NUMBER(2);
+    
+BEGIN
+    IF vclub IS NULL AND vclub2 IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20012, 'Por favor introduzca parametros válidos');
+    END IF;
+
+    SELECT COUNT(*) INTO VCheck FROM Club_objtab c WHERE c.Nombre = vclub;
+    SELECT COUNT(*) INTO VCheck2 FROM Club_objtab c WHERE c.Nombre = vclub2;
+
+
+    IF vclub IS NOT NULL AND vclub2 IS NOT NULL THEN
+
+        IF VCheck > 0 AND VCheck2 > 0 THEN
+    
+            SELECT DISTINCT DEREF(c.Preside.Presidente).Nombre INTO VPresi FROM Club_objtab c WHERE c.Nombre = vclub;
+            SELECT DISTINCT DEREF(c.Preside.Presidente).Nombre INTO VPresi2 FROM Club_objtab c WHERE c.Nombre = vclub2;
+            
+            UPDATE Club_objtab c
+            SET c.Preside.Presidente = (SELECT REF(p)
+                FROM Presidente_objtab p
+                WHERE p.Nombre = VPresi2),
+                c.Preside.FechaPosesion = SYSDATE,
+                c.Preside.Fechacese = null
+            WHERE c.Nombre = vclub;
+
+
+            UPDATE Club_objtab c
+            SET c.Preside.Presidente = (SELECT REF(p)
+                FROM Presidente_objtab p
+                WHERE p.Nombre = VPresi),
+            c.Preside.FechaPosesion = SYSDATE,
+            c.Preside.Fechacese = null
+            WHERE c.Nombre = vclub2;
+
+            DBMS_OUTPUT.PUT_LINE('============================================================================');          
+            DBMS_OUTPUT.PUT_LINE('EL NUEVO PRESIDENTE DEL ' || vclub ||' ES ' || VPresi2);
+            DBMS_OUTPUT.PUT_LINE('============================================================================');
+            DBMS_OUTPUT.PUT_LINE('============================================================================');          
+            DBMS_OUTPUT.PUT_LINE('EL NUEVO PRESIDENTE DEL ' || vclub2 ||' ES ' || VPresi);
+            DBMS_OUTPUT.PUT_LINE('============================================================================');
+
+         ELSE
+
+            RAISE_APPLICATION_ERROR(-20012, 'Alguno o ambos de los clubs introducidos no es valido');
+
+         END IF;
+    ELSE
+
+        IF vclub IS NOT NULL AND vclub2 IS NULL THEN
+            DBMS_OUTPUT.PUT_LINE('============================================================================');          
+            DBMS_OUTPUT.PUT_LINE('EL SUELDO DE LOS JUGADORES DEL CLUB ' || vclub ||' QUEDA REDUCIDO A LA MITAD');
+            DBMS_OUTPUT.PUT_LINE('============================================================================');
+            
+            UPDATE Jugador_objtab j
+            SET j.Sueldo = j.Sueldo / 2
+            WHERE DEREF(j.Equipo).Nombre =
+                (SELECT e.Nombre
+                FROM Equipo_objtab e
+                WHERE DEREF(e.Club).Nombre = vclub);
+                
+            SELECT DISTINCT REF(j) BULK COLLECT INTO TJugadores
+            FROM Jugador_objtab j, Equipo_objtab e, Club_objtab c
+            WHERE DEREF(j.Equipo).Nombre = e.Nombre
+            AND DEREF(e.Club).Nombre = vclub;
+            
+        END IF;
+
+        IF vclub IS NULL AND vclub2 IS NOT NULL THEN
+            DBMS_OUTPUT.PUT_LINE('============================================================================');          
+            DBMS_OUTPUT.PUT_LINE('EL SUELDO DE LOS JUGADORES DEL CLUB ' || vclub ||' ES INCREMENTADO 500€');
+            DBMS_OUTPUT.PUT_LINE('============================================================================');
+            
+            UPDATE Jugador_objtab j
+            SET j.Sueldo = j.Sueldo + 500
+            WHERE DEREF(j.Equipo).Nombre =
+                (SELECT e.Nombre
+                FROM Equipo_objtab e
+                WHERE DEREF(e.Club).Nombre = vclub2);
+            
+            SELECT DISTINCT REF(j) BULK COLLECT INTO TJugadores
+            FROM Jugador_objtab j, Equipo_objtab e, Club_objtab c
+            WHERE DEREF(j.Equipo).Nombre = e.Nombre
+            AND DEREF(e.Club).Nombre = vclub2;
+        
+        END IF;       
+
+
+        FOR I IN 1..TJugadores.COUNT LOOP
+        SELECT DEREF(TJugadores(I)).Nombre INTO VNombre FROM DUAL;
+        SELECT DEREF(TJugadores(I)).Apellido1 INTO VApellido FROM DUAL;
+        SELECT DEREF(TJugadores(I)).Sueldo INTO VSueldo FROM DUAL;
+
+            DBMS_OUTPUT.PUT_LINE('============================================================================');          
+            DBMS_OUTPUT.PUT_LINE('EL SUELDO DE ' || VNombre ||' '|| VApellido ||' AHORA ES DE ' || VSueldo);
+            DBMS_OUTPUT.PUT_LINE('============================================================================');
+
+        END LOOP;
+    END IF;
+    DBMS_OUTPUT.PUT_LINE(' ');
+ END;
+ 
+ EXECUTE RecorteAumentoPresupuestario('FC Barcelona');
+ EXECUTE RecorteAumentoPresupuestario(null,'FC Barcelona');
+ EXECUTE RecorteAumentoPresupuestario(null, null);
+ EXECUTE RecorteAumentoPresupuestario('Real Madrid CF', 'FC Barcelona');
+ EXECUTE RecorteAumentoPresupuestario('EquipoNoExiste1','EquipoNoExiste1');
