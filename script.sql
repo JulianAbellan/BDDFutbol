@@ -143,7 +143,7 @@ CREATE OR REPLACE TYPE Jugador_objtyp UNDER Persona_objtyp(
 );
 /
 CREATE OR REPLACE TYPE Arbitro_objtyp UNDER Persona_objtyp(
-    RolPrincipal VARCHAR2(10)
+    RolPrincipal VARCHAR2(35)
 );
 /
 CREATE OR REPLACE TYPE Juega_objtyp AS OBJECT (
@@ -418,7 +418,12 @@ INSERT INTO presidente_objtab (id_persona, nombre, apellido1, apellido2, edad, a
 INSERT INTO presidente_objtab (id_persona, nombre, apellido1, apellido2, edad, aval, pais)
     VALUES (201, 'Florentino', 'Pérez', 'Rodríguez', 76, 'ACS', (SELECT REF(p) FROM pais_objtab p WHERE p.nombre = 'España'));
 /
-
+INSERT INTO presidente_objtab (id_persona, nombre, apellido1, apellido2, edad, aval, pais)
+    VALUES (202, 'Manu', 'Pelao', 'Master', 50, 'UCLM', (SELECT REF(p) FROM pais_objtab p WHERE p.nombre = 'España'));
+/
+INSERT INTO presidente_objtab (id_persona, nombre, apellido1, apellido2, edad, aval, pais)
+    VALUES (203, 'Julian', 'Llorica', 'Master', 58, 'UCLM', (SELECT REF(p) FROM pais_objtab p WHERE p.nombre = 'España'));
+/
 
 INSERT INTO club_objtab (id_club, nombre, presupuesto, preside)
     VALUES (100, 'FC Barcelona', 100000000,
@@ -515,7 +520,12 @@ INSERT INTO preside_objtab (presidente, fechaposesion)
 INSERT INTO preside_objtab (presidente, fechaposesion)
     VALUES ((SELECT REF(p) FROM presidente_objtab p WHERE p.apellido1 = 'Pérez'),SYSDATE);
 /
-
+INSERT INTO preside_objtab (presidente, fechaposesion, FechaCese)
+    VALUES ((SELECT REF(p) FROM presidente_objtab p WHERE p.apellido1 = 'Pelao'), '22/04/22', '22/04/23');
+/
+INSERT INTO preside_objtab (presidente, fechaposesion, FechaCese)
+    VALUES ((SELECT REF(p) FROM presidente_objtab p WHERE p.apellido1 = 'Llorica'), '22/04/21', '22/04/23');
+/
 
 
 INSERT INTO Entrenador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, FueJugador, Pais)
@@ -1544,7 +1554,7 @@ WHERE ID_Partido = 6;/
 --Dime el arbitro que
 --participó como asistente en los partidos en cuyo resultado el número de goles del equipo local fue mayor de 5 
 
-CREATE OR REPLACE VIEW arbitroAsistente AS(
+CREATE OR REPLACE VIEW arbitroAsistente AS
 
 SELECT * 
     FROM arbitro_objtab a
@@ -1552,12 +1562,14 @@ SELECT *
 (SELECT a.Arbitro
     FROM partido_objtab p, TABLE(p.arbitros) a
     WHERE (p.resultado.GolesLocal > 5)  AND a.Rol = 'Asistente')
-    ORDER BY a.ID_PERSONA
-)
+    ORDER BY a.ID_PERSONA;/
+
 
 --Dime la clasificación de la LaLiga Santander 
 --del equipo haya participado en el partido con más goles como visitante
  
+CREATE OR REPLACE VIEW EquipoVisitanteGoleador AS
+
 SELECT *
     FROM clasificacion_objtab c
     WHERE c.Liga.Nombre = 'LaLiga Santander'
@@ -1565,17 +1577,19 @@ SELECT *
             c.equipo in 
         (SELECT p.equipo_visitante
         FROM partido_objtab p
-        WHERE p.resultado.GolesVisitante = (SELECT MAX(p.resultado.GolesVisitante) FROM partido_objtab p)) 
+        WHERE p.resultado.GolesVisitante = (SELECT MAX(p.resultado.GolesVisitante) FROM partido_objtab p)) ;/
 
 --Dime el presidente con el periodo entre posesión 
 --y cese más larga y cuyo equipo tenga el mayor número de partidos ganados
+
+CREATE OR REPLACE VIEW PresidenteLongevoGanador AS(
 
 SELECT p.*, pre.fechacese, pre.fechaposesion, (pre.fechacese - pre.fechaposesion) as dias
     FROM presidente_objtab p, preside_objtab pre
     WHERE REF(p) = pre.presidente
         AND
             (pre.fechacese - pre.fechaposesion) = (SELECT MAX(pre.fechacese - pre.fechaposesion) as resta
-        FROM preside_objtab pre)
+        FROM preside_objtab pre));/
 
 
 --_____________________________________________________________________________________________________
@@ -1585,7 +1599,54 @@ SELECT p.*, pre.fechacese, pre.fechaposesion, (pre.fechacese - pre.fechaposesion
 --______________________________________________________________________________________________________
 
 
---2 Disparadoreh
+--2 Disparadores
+
+--Si un arbitro arbitra más de 3 partidos con rol distinto al principal se le cambia
+
+CREATE OR REPLACE TRIGGER CambiarRolArbitro
+FOR INSERT OR UPDATE ON Partido_objtab
+COMPOUND TRIGGER    
+    TYPE TPartido IS TABLE OF Partido_objtab.ID_Partido%TYPE INDEX BY BINARY_INTEGER;
+    tablapartido TPartido;
+    IND BINARY_INTEGER:=0;
+    
+    v_partido_id NUMBER(10);        
+
+BEFORE EACH ROW IS BEGIN
+    IND := IND + 1;
+    tablapartido(IND) := :NEW.ID_Partido;
+END BEFORE EACH ROW;
+
+AFTER STATEMENT IS
+BEGIN   
+    FOR i IN 1..IND
+    loop
+        
+        v_partido_id := tablapartido(i);
+    
+        FOR vi IN (SELECT arb.Arbitro.ID_Persona AS idpersona, arb.Arbitro.Nombre AS nombre, arb.Arbitro.RolPrincipal AS rolprincipal, arb.Rol AS rol
+                        FROM Partido_objtab p, TABLE(p.arbitros) arb
+                        WHERE p.ID_Partido = v_partido_id
+                        AND arb.Arbitro IN
+                        
+                        (SELECT a.Arbitro 
+                         FROM Partido_objtab p, TABLE(p.arbitros) a
+                        WHERE a.Arbitro.ID_persona = arb.Arbitro.ID_Persona AND a.Rol != a.Arbitro.RolPrincipal
+                        ORDER BY p.Fecha DESC, p.Hora DESC
+                        FETCH FIRST 5 ROWS ONLY)
+                        )
+        loop
+            DBMS_OUTPUT.PUT_LINE(vi.idpersona || ' ' || vi.nombre || ' ' || vi.rolprincipal || ' ' || vi.rol);
+            
+            UPDATE Arbitro_Objtab SET RolPrincipal = vi.rol WHERE ID_Persona = vi.idpersona;
+        
+        end loop;
+    
+    end loop;
+
+END AFTER STATEMENT;
+END;
+/
 
 
 --Al jugar un partido actualizar el número de minutos jugados de cada jugador
@@ -1664,31 +1725,18 @@ END;
 SET SERVEROUTPUT ON;
 
 
-
--- 
---Al jugar un partido actualizar la clasificación del equipo
-
-
-
 --_____________________________________________________________________________________________________
 
 --___________________________________RAÚL PROCEDIMIENTOS_____________________________________________________
 
 --______________________________________________________________________________________________________
 
+--1-2 Procedimientos
 
-
---1-2 Procedimientoh
-
-
-
-
---funcion que calcule el numero de minutos de cada jugador
+--funcion que calcule el numero de minutos de cada jugador por primera vez
 CREATE OR REPLACE PROCEDURE MinutoSalidaJugador IS
-
     SolucionJugador NUMBER(10);
     minutos jugador_objtab.MinutosJugados%TYPE;
-
 BEGIN
 
 for vi in (    
@@ -1706,19 +1754,12 @@ for vi in (
         else
             SolucionJugador := vi.jugsalida - vi.jugentrada;
         end if;
-        
-    --DBMS_OUTPUT.put_line (vi.idpersona || ' ' || SolucionJugador);
-          
+                
     IF minutos IS null THEN
         UPDATE jugador_objtab set MinutosJugados = SolucionJugador WHERE ID_persona = vi.idpersona;
     ELSE
         UPDATE jugador_objtab set MinutosJugados = MinutosJugados + SolucionJugador WHERE ID_persona = vi.idpersona;
     END IF;
-    
     end loop;
 END;    
-
-
-
---funcion que visualice la clasificación 
 
