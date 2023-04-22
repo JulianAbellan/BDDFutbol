@@ -2364,7 +2364,10 @@ BEGIN
         v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
     END IF;
     
-    SELECT MAX(id_historial) + 1 INTO v_id_historial FROM Historial_objtab; 
+    SELECT MAX(id_historial) + 1 INTO v_id_historial FROM Historial_objtab;
+    IF v_id_historial IS NULL THEN
+        v_id_historial := 1;
+    END IF;
     
     --Creo el nuevo historial que va a ir asociado al jugador    
     INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
