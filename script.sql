@@ -2378,3 +2378,47 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     VALUES(132, 'pelusi', 'natillas', null, 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Alemania'), 1, 'Portero', 9000000,
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF')
 );/
+
+--TRIGGER 2
+
+--DISPARADOR QUE COMPRUEBE LA DISPONIBILIDAD DE LOS ESTADIOS
+--ANTES DE PROGRAMAR UN PARTIDO EN ELLOS, DE MODO QUE SE VERIFIQUE QUE
+--NO SE PUEDEN JUGAR VARIOS PARTIDOS EN EL MISMO ESTADIO EN LA MISMA FECHA Y HORA.
+
+CREATE OR REPLACE TRIGGER tr_comprobar_estadio_disponible
+BEFORE INSERT ON Partido_objtab
+FOR EACH ROW
+DECLARE
+    v_estadio_ocupado NUMBER;
+    v_fecha_partido Partido_objtab.Fecha%TYPE;
+    v_old_fecha Partido_objtab.Fecha%TYPE;
+BEGIN
+    
+    v_old_fecha := :NEW.Fecha;
+    --Compruebo si hay partidos en los que coinciden las fechas y los estadios.
+    v_fecha_partido := :NEW.Fecha;
+    
+    SELECT COUNT(*) INTO v_estadio_ocupado
+    FROM Partido_objtab p
+    WHERE p.Estadio_partido = :NEW.Estadio_partido
+    AND p.Fecha LIKE v_fecha_partido;
+    
+    --Si hay partidos en los que coinciden las fechas y estadios, cambio la fecha a una disponible
+    IF v_estadio_ocupado > 0 THEN 
+        LOOP
+            v_fecha_partido := v_fecha_partido + 1;
+            
+            SELECT COUNT(*) INTO v_estadio_ocupado
+            FROM Partido_objtab p
+            WHERE p.Estadio_partido = :NEW.Estadio_partido
+            AND p.Fecha LIKE v_fecha_partido;
+            
+            EXIT WHEN v_estadio_ocupado = 0;
+        END LOOP;
+        
+        :NEW.Fecha := v_fecha_partido;
+        
+        DBMS_OUTPUT.PUT_LINE(v_old_fecha || ' - ' || :NEW.Hora || 'h --> ' || :NEW.Fecha || ' - ' || :NEW.Hora || 'h.');
+    END IF;
+END;
+/
