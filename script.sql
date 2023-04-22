@@ -2113,6 +2113,10 @@ v_historial Jugador_objtab.Historial%TYPE;
 v_temp_salida Historial_objtab.TemporadaSalida%TYPE;
 v_presupuesto Equipo_objtab.Presupuesto%TYPE;
 
+v_temporada Historial_objtab.TemporadaSalida%TYPE;
+v_anio NUMBER;
+v_mes NUMBER;
+
 BEGIN
     DBMS_OUTPUT.PUT_LINE('~ Realizando fichaje... ~');
 
@@ -2164,21 +2168,18 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
     END IF;
     
+    --Calculamos la temporada en la que estamos
+    SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
     
+    IF v_mes >= 7 THEN
+        v_temporada := TO_CHAR(v_anio) || '-' || SUBSTR(TO_CHAR(v_anio+1), 3, 2);
+    ELSE
+        v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
+    END IF;
+
     --Actualizamos su historial con el antiguo club
     UPDATE Historial_objtab
-    SET TemporadaSalida = 
-        CASE 
-            WHEN SYSDATE BETWEEN TO_DATE('13/08/22', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY') 
-            THEN '2022-23'
-            WHEN SYSDATE BETWEEN TO_DATE('13/08/23', 'DD/MM/YY') AND TO_DATE('04/06/24', 'DD/MM/YY') 
-            THEN '2023-24'
-            WHEN SYSDATE BETWEEN TO_DATE('13/08/24', 'DD/MM/YY') AND TO_DATE('04/06/25', 'DD/MM/YY') 
-            THEN '2024-25' 
-            WHEN SYSDATE BETWEEN TO_DATE('13/08/25', 'DD/MM/YY') AND TO_DATE('04/06/26', 'DD/MM/YY') 
-            THEN '2025-26'
-            ELSE null 
-        END
+    SET TemporadaSalida = v_temporada
     WHERE Id_historial = (
         SELECT j.Historial.Id_historial 
         FROM Jugador_objtab j 
@@ -2191,17 +2192,7 @@ BEGIN
     VALUES (
         (SELECT MAX(id_historial) + 1 FROM Historial_objtab),
         (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = v_equipo),
-        CASE 
-            WHEN SYSDATE BETWEEN TO_DATE('13/08/22', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY') 
-            THEN '2022-23'
-            WHEN SYSDATE BETWEEN TO_DATE('13/08/23', 'DD/MM/YY') AND TO_DATE('04/06/24', 'DD/MM/YY') 
-            THEN '2023-24'
-            WHEN SYSDATE BETWEEN TO_DATE('13/08/24', 'DD/MM/YY') AND TO_DATE('04/06/25', 'DD/MM/YY') 
-            THEN '2024-25' 
-            WHEN SYSDATE BETWEEN TO_DATE('13/08/25', 'DD/MM/YY') AND TO_DATE('04/06/26', 'DD/MM/YY') 
-            THEN '2025-26'
-            ELSE null 
-        END);
+        v_temporada);
     
    
     --Añado el nuevo jugador
@@ -2239,6 +2230,7 @@ END;
 /
 
 EXECUTE Fichar_Jugador(51, 3, 6000000, 111);
+
 
 
 
