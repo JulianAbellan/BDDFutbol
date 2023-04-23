@@ -1564,6 +1564,7 @@ SELECT *
     WHERE (p.resultado.GolesLocal > 5)  AND a.Rol = 'Asistente')
     ORDER BY a.ID_PERSONA;/
 
+ select * from arbitroAsistente;
 
 --Dime la clasificación de la LaLiga Santander 
 --del equipo haya participado en el partido con más goles como visitante
@@ -1579,6 +1580,8 @@ SELECT *
         FROM partido_objtab p
         WHERE p.resultado.GolesVisitante = (SELECT MAX(p.resultado.GolesVisitante) FROM partido_objtab p)) ;/
 
+ select * from EquipoVisitanteGoleador;
+
 --Dime el presidente con el periodo entre posesión 
 --y cese más larga y cuyo equipo tenga el mayor número de partidos ganados
 
@@ -1590,6 +1593,8 @@ SELECT p.*, pre.fechacese, pre.fechaposesion, (pre.fechacese - pre.fechaposesion
         AND
             (pre.fechacese - pre.fechaposesion) = (SELECT MAX(pre.fechacese - pre.fechaposesion) as resta
         FROM preside_objtab pre));/
+
+ select * from PresidenteLongevoGanador;
 
 
 --_____________________________________________________________________________________________________
@@ -1673,7 +1678,7 @@ BEGIN
     
     v_partido_id := tablapartido(i);
     
-    DBMS_OUTPUT.put_line ('Has actualizado el partido: ' || v_partido_id);
+    DBMS_OUTPUT.put_line ('Has insertado el partido: ' || v_partido_id);
 
     -- Iteramos la información de cada jugador del partido
 
@@ -1759,3 +1764,4 @@ for vi in (
     end loop;
 END;    
 
+-- execute MinutoSalidaJugador
