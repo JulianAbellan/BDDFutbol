@@ -684,17 +684,14 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
 /
 
 
-INSERT INTO historial_objtab (Id_historial, equipo, TemporadaEntrada)
-    VALUES (0001, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'FC Barcelona'), '2021-22');/
-
 INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(50, 'Marc-André', 'ter Stegen', null, 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Alemania'), 1, 'Portero', 9000000,
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, Historial, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(51, 'Ronald', 'Araujo', 24, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Uruguay'), 4, 'Defensa', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = 0001), 0, 0, 0, 0, 0
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );/
 
 INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
@@ -2796,6 +2793,129 @@ END;
 
 
 
+-- Disparadores
+
+--Disparador que controle que un jugador puede ser insertado en un nuevo equipo
+--(controlando que no supere el tamaño máximo permitido de jugadores por equipo)
+-- y que se le asigne un historial con ese equipo automáticamente.
+
+CREATE OR REPLACE TRIGGER tr_insertar_jugador
+BEFORE INSERT ON jugador_objtab
+FOR EACH ROW
+DECLARE
+    v_num_jugadores NUMBER;
+    v_temporada Historial_objtab.TemporadaEntrada%TYPE;
+    v_id_historial Historial_objtab.Id_historial%TYPE;
+    v_anio NUMBER;
+    v_mes NUMBER;
+BEGIN
+    -- Compruebo que el equipo al que quiero añadir el jugador tiene menos de 25 jugadores
+    SELECT COUNT(*) INTO v_num_jugadores
+    FROM Jugador_objtab j
+    WHERE j.Equipo = :NEW.Equipo
+    AND j.Historial.TemporadaSalida IS NULL;
+    --Lanzo error si no puede ser añadido al equipo.    
+    IF v_num_jugadores >= 25 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'El equipo no puede inscribir más jugadores a la liga.');
+    END IF;
+    
+    --Declaro valores para el Historial
+    SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
+    
+    IF v_mes >= 7 THEN
+        v_temporada := TO_CHAR(v_anio) || '-' || SUBSTR(TO_CHAR(v_anio+1), 3, 2);
+    ELSE
+        v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
+    END IF;
+    
+    SELECT MAX(id_historial) + 1 INTO v_id_historial FROM Historial_objtab;
+    IF v_id_historial IS NULL THEN
+        v_id_historial := 1;
+    END IF;
+    
+    --Creo el nuevo historial que va a ir asociado al jugador    
+    INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
+    VALUES (v_id_historial, :new.Equipo, v_temporada);
+    
+    SELECT REF(h) INTO :NEW.Historial FROM Historial_objtab h WHERE h.id_historial = v_id_historial;
+    
+    -- Añado el historial al jugador que acabo de añadir
+    UPDATE Jugador_objtab j
+    SET j.Historial = :NEW.Historial
+    WHERE Id_persona = :NEW.Id_persona;
+END;
+/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1100, 'Mount', 'Tern', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1101, 'Mount', 'Terni', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1102, 'Mount', 'Terna', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1103, 'Mount', 'Ternu', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1104, 'Mount', 'Terno', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1105, 'Mount', 'Ternos', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+
+-- El real madrid tiene 20 jugadores, por lo tanto, al añadir estos nuevos jugadores, los 5 primeros se insertan correctamente y se le asigna un historial con el Real Madrid, pero el último jugador no puede ser añadido al superar el límite de jugadores
+
+--TRIGGER 2
+
+--DISPARADOR QUE COMPRUEBE LA DISPONIBILIDAD DE LOS ESTADIOS
+--ANTES DE PROGRAMAR UN PARTIDO EN ELLOS, DE MODO QUE SE VERIFIQUE QUE
+--NO SE PUEDEN JUGAR VARIOS PARTIDOS EN EL MISMO ESTADIO EN LA MISMA FECHA Y HORA.
+
+CREATE OR REPLACE TRIGGER tr_comprobar_estadio_disponible
+BEFORE INSERT ON Partido_objtab
+FOR EACH ROW
+DECLARE
+    v_estadio_ocupado NUMBER;
+    v_fecha_partido Partido_objtab.Fecha%TYPE;
+    v_old_fecha Partido_objtab.Fecha%TYPE;
+BEGIN
+    
+    v_old_fecha := :NEW.Fecha;
+    --Compruebo si hay partidos en los que coinciden las fechas y los estadios.
+    v_fecha_partido := :NEW.Fecha;
+    
+    SELECT COUNT(*) INTO v_estadio_ocupado
+    FROM Partido_objtab p
+    WHERE p.Estadio_partido = :NEW.Estadio_partido
+    AND p.Fecha LIKE v_fecha_partido;
+    
+    --Si hay partidos en los que coinciden las fechas y estadios, cambio la fecha a una disponible
+    IF v_estadio_ocupado > 0 THEN 
+        LOOP
+            v_fecha_partido := v_fecha_partido + 1;
+            
+            SELECT COUNT(*) INTO v_estadio_ocupado
+            FROM Partido_objtab p
+            WHERE p.Estadio_partido = :NEW.Estadio_partido
+            AND p.Fecha LIKE v_fecha_partido;
+            
+            EXIT WHEN v_estadio_ocupado = 0;
+        END LOOP;
+        
+        :NEW.Fecha := v_fecha_partido;
+        
+        DBMS_OUTPUT.PUT_LINE(v_old_fecha || ' - ' || :NEW.Hora || 'h --> ' || :NEW.Fecha || ' - ' || :NEW.Hora || 'h.');
+    END IF;
+END;
+/
 
 
 
@@ -3014,7 +3134,23 @@ BEGIN
 END;
 /
 
-EXECUTE Fichar_Jugador(51, 3, 6000000, 111);
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1008, 'Alvaro', 'Grists', '', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
+);
+/
+--Error: no existe el jugador
+EXECUTE Fichar_Jugador(1015, 3, 6000000, 100000); 
+--Error: no existe el equipo
+EXECUTE Fichar_Jugador(1008, 100, 6000000, 100000); 
+--Error por mismo equipo
+EXECUTE Fichar_Jugador(1008, 1, 6000000, 100000); 
+--Error por no tener presupuesto
+EXECUTE Fichar_jugador(1008 ,3, 6000000, 1000000000); 
+--Fichado
+EXECUTE Fichar_jugador(1008 ,3, 6000000, 100000); 
+--Error: este jugador ya ha sido fichado - historial cerrado
+EXECUTE Fichar_jugador(1008 ,1, 6000000, 100000); 
 
 
 
@@ -3104,101 +3240,6 @@ BEGIN
 END;
 /
 
+--Actualiza los estadios de laliga santander (Real madrid --> No lo actualiza porque no tiene asociado el club)
 EXECUTE actualizar_aforo_y_presupuesto(1);
 
--- Disparadores
-
---Disparador que controle que un jugador puede ser insertado en un nuevo equipo
---(controlando que no supere el tamaño máximo permitido de jugadores por equipo)
--- y que se le asigne un historial con ese equipo automáticamente.
-
-CREATE OR REPLACE TRIGGER tr_insertar_jugador
-BEFORE INSERT ON jugador_objtab
-FOR EACH ROW
-DECLARE
-    v_num_jugadores NUMBER;
-    v_temporada Historial_objtab.TemporadaEntrada%TYPE;
-    v_id_historial Historial_objtab.Id_historial%TYPE;
-    v_anio NUMBER;
-    v_mes NUMBER;
-BEGIN
-    -- Compruebo que el equipo al que quiero añadir el jugador tiene menos de 25 jugadores
-    SELECT COUNT(*) INTO v_num_jugadores
-    FROM Jugador_objtab j
-    WHERE j.Equipo = :NEW.Equipo
-    AND j.Historial.TemporadaSalida IS NULL;
-    --Lanzo error si no puede ser añadido al equipo.    
-    IF v_num_jugadores >= 25 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'El equipo no puede inscribir más jugadores a la liga.');
-    END IF;
-    
-    --Declaro valores para el Historial
-    SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
-    
-    IF v_mes >= 7 THEN
-        v_temporada := TO_CHAR(v_anio) || '-' || SUBSTR(TO_CHAR(v_anio+1), 3, 2);
-    ELSE
-        v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
-    END IF;
-    
-    SELECT MAX(id_historial) + 1 INTO v_id_historial FROM Historial_objtab;
-    IF v_id_historial IS NULL THEN
-        v_id_historial := 1;
-    END IF;
-    
-    --Creo el nuevo historial que va a ir asociado al jugador    
-    INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
-    VALUES (v_id_historial, :new.Equipo, v_temporada);
-    
-    SELECT REF(h) INTO :NEW.Historial FROM Historial_objtab h WHERE h.id_historial = v_id_historial;
-    
-    -- Añado el historial al jugador que acabo de añadir
-    UPDATE Jugador_objtab j
-    SET j.Historial = :NEW.Historial
-    WHERE Id_persona = :NEW.Id_persona;
-END;
-/
-
---TRIGGER 2
-
---DISPARADOR QUE COMPRUEBE LA DISPONIBILIDAD DE LOS ESTADIOS
---ANTES DE PROGRAMAR UN PARTIDO EN ELLOS, DE MODO QUE SE VERIFIQUE QUE
---NO SE PUEDEN JUGAR VARIOS PARTIDOS EN EL MISMO ESTADIO EN LA MISMA FECHA Y HORA.
-
-CREATE OR REPLACE TRIGGER tr_comprobar_estadio_disponible
-BEFORE INSERT ON Partido_objtab
-FOR EACH ROW
-DECLARE
-    v_estadio_ocupado NUMBER;
-    v_fecha_partido Partido_objtab.Fecha%TYPE;
-    v_old_fecha Partido_objtab.Fecha%TYPE;
-BEGIN
-    
-    v_old_fecha := :NEW.Fecha;
-    --Compruebo si hay partidos en los que coinciden las fechas y los estadios.
-    v_fecha_partido := :NEW.Fecha;
-    
-    SELECT COUNT(*) INTO v_estadio_ocupado
-    FROM Partido_objtab p
-    WHERE p.Estadio_partido = :NEW.Estadio_partido
-    AND p.Fecha LIKE v_fecha_partido;
-    
-    --Si hay partidos en los que coinciden las fechas y estadios, cambio la fecha a una disponible
-    IF v_estadio_ocupado > 0 THEN 
-        LOOP
-            v_fecha_partido := v_fecha_partido + 1;
-            
-            SELECT COUNT(*) INTO v_estadio_ocupado
-            FROM Partido_objtab p
-            WHERE p.Estadio_partido = :NEW.Estadio_partido
-            AND p.Fecha LIKE v_fecha_partido;
-            
-            EXIT WHEN v_estadio_ocupado = 0;
-        END LOOP;
-        
-        :NEW.Fecha := v_fecha_partido;
-        
-        DBMS_OUTPUT.PUT_LINE(v_old_fecha || ' - ' || :NEW.Hora || 'h --> ' || :NEW.Fecha || ' - ' || :NEW.Hora || 'h.');
-    END IF;
-END;
-/
