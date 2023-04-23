@@ -469,25 +469,289 @@ ALTER TABLE nt_arbitra_tab ADD(
 /
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ALTER TABLE Partido_objtab ADD(
     SCOPE FOR (Equipo_local) IS Equipo_objtab,
     SCOPE FOR (Equipo_visitante) IS Equipo_objtab,
     SCOPE FOR (Estadio_partido) IS Estadio_objtab);
 /  
+
+
+-- DISPARADORES DE JULIÁN
+
+-- Disparador para mantener la tabla Clasificación actualizada en todo momento
+
+
+
+CREATE SEQUENCE Seq_Clasif  INCREMENT BY 1 START WITH 10 MAXVALUE 9999 CACHE 15 NOCYCLE;
+/
+CREATE OR REPLACE FUNCTION CalculoTemp (Fecha IN DATE) RETURN VARCHAR2 AS
+
+    VYear NUMBER(4);
+    VMes NUMBER(2);
+BEGIN
+    SELECT EXTRACT(year FROM Fecha), EXTRACT(month FROM Fecha) INTO VYear, VMes FROM DUAL;
+
+    IF VMes > 7 THEN 
+        RETURN '' || VYear || '-' || (VYear+1)MOD 2000;
+    ELSIF VMes < 7 THEN
+        RETURN '' || VYear-1 || '-' || (VYear)MOD 2000;
+    ELSE RAISE_APPLICATION_ERROR('-20001','No puede haber partidos en julio, porque hay vacaciones obligatorias');
+    END IF;
+
+END;
+/
+
+CREATE OR REPLACE PROCEDURE CheckExisteClasif(VEquipo in Equipo_objtab.nombre%type, VTemp in Clasificacion_objtab.Temporada%type) 
+IS
+    VID Clasificacion_objtab.ID_clasificacion%type;
+BEGIN
+    SELECT c.ID_clasificacion INTO VID
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = VEquipo);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+    IF VID IS NULL THEN
+        INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
+        VALUES (Seq_Clasif.NEXTVAL, VTemp, 0, 0, 0, 0, 0, 0,
+            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre LIKE VEquipo),
+            (SELECT e.liga FROM equipo_objtab e WHERE e.nombre = VEquipo)
+            );
+    END IF;
+END;
+/
+
+/*
+CREATE OR REPLACE TRIGGER Clasificacion_Trigger
+AFTER INSERT OR DELETE OR UPDATE ON Partido_objtab
+FOR EACH ROW
+DECLARE
+    VGolesLocal Partido_objtab.Resultado.GolesLocal%Type;
+    VGolesVisitante Partido_objtab.Resultado.GolesVisitante%Type;
+    VTemporada Clasificacion_objtab.Temporada%TYPE;
+    VPuntos Clasificacion_objtab.Puntos%TYPE;
+    VPG clasificacion_objtab.partidosganados%TYPE;
+    VPE clasificacion_objtab.partidosempatados%TYPE;
+    VPP clasificacion_objtab.partidosperdidos%TYPE;
+    VNLocal equipo_objtab.nombre%type;
+    VNVisitante equipo_objtab.nombre%type;
+BEGIN
+
+    SELECT CalculoTemp(:NEW.Fecha) INTO VTemporada FROM DUAL;
+    
+    SELECT DEREF(:NEW.Equipo_local).Nombre, DEREF(:NEW.Equipo_visitante).Nombre 
+    INTO VNLocal, VNVisitante
+    FROM DUAL;
+
+    CheckExisteClasif(VNLocal, VTemporada);
+    CheckExisteClasif(VNVisitante, VTemporada);
+    
+
+    SELECT SUM(Goles) INTO VGolesLocal
+    FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+    WHERE jugador = REF(j) AND j.Equipo = :NEW.Equipo_local AND p.ID_partido = :NEW.ID_partido;
+
+    SELECT SUM(Goles) INTO VGolesVisitante
+    FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+    WHERE jugador = REF(j) AND j.Equipo = :NEW.Equipo_visitante AND p.ID_partido = :NEW.ID_partido;
+
+    
+    :NEW.Resultado := Resultado_objtyp(VGolesLocal, VGolesVisitante, null, null, null);
+    
+
+    SELECT c.GolesFavor + :NEW.Resultado.GolesLocal, c.GolesContra + :NEW.Resultado.GolesVisitante INTO VGF, VGC
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+
+    UPDATE Clasificacion_objtab c
+    SET c.GOlesFavor = VGF, c.GolesContra = VGC
+    WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada; 
+
+    SELECT c.GolesFavor + :NEW.Resultado.GolesVisitante, c.GolesContra + :NEW.Resultado.GolesLocal INTO VGF, VGC
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = :NEW.Equipo_Visitante AND c.Temporada = VTemporada;
+
+    UPDATE Clasificacion_objtab c
+    SET c.GOlesFavor = VGF, c.GolesContra = VGC
+    WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada; 
+
+    IF :NEW.Resultado.GolesLocal > :NEW.Resultado.GolesVisitante THEN
+        SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosGanados = VPG
+        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        
+        UPDATE Clasificacion_objtab c
+        SET c.PartidosPerdidos = VPP
+        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+  
+    ELSIF :NEW.Resultado.GolesLocal < :NEW.Resultado.GolesVisitante THEN
+        SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosGanados = VPG
+        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+       
+        UPDATE Clasificacion_objtab c
+        SET c.PartidosPerdidos = VPP
+        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+    ELSE 
+        SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosEmpatados = VPE
+        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        
+        SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosEmpatados = VPE
+        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+    END IF;
+END;
+    
+/
+*/
+
+CREATE OR REPLACE TRIGGER Clasificacion_Trigger_C 
+FOR INSERT ON Partido_objtab
+COMPOUND TRIGGER
+    TYPE TFecha IS TABLE OF Partido_objtab.Fecha%TYPE INDEX BY BINARY_INTEGER;
+    VTFecha TFecha;
+    TYPE TEL IS TABLE OF Partido_objtab.Equipo_local%TYPE INDEX BY BINARY_INTEGER;
+    VTEL TEL;
+    TYPE TEV IS TABLE OF Partido_objtab.Equipo_visitante%TYPE INDEX BY BINARY_INTEGER;
+    VTEV TEV;
+    TYPE TIDP IS TABLE OF Partido_objtab.ID_partido%TYPE INDEX BY BINARY_INTEGER;
+    VTIDP TIDP;
+    TYPE TResul IS TABLE OF Partido_objtab.Resultado%TYPE INDEX BY BINARY_INTEGER;
+    VTResul TResul;
+    IND BINARY_INTEGER:=0;
+    VGolesLocal Partido_objtab.Resultado.GolesLocal%Type;
+    VGolesVisitante Partido_objtab.Resultado.GolesVisitante%Type;
+    VTemporada Clasificacion_objtab.Temporada%TYPE;
+    VPuntos Clasificacion_objtab.Puntos%TYPE;
+    VPG clasificacion_objtab.partidosganados%TYPE;
+    VPE clasificacion_objtab.partidosempatados%TYPE;
+    VPP clasificacion_objtab.partidosperdidos%TYPE;
+    VNLocal equipo_objtab.nombre%type;
+    VNVisitante equipo_objtab.nombre%type;
+    VGC Clasificacion_objtab.GolesContra%TYPE;
+    VGF Clasificacion_objtab.GolesFavor%TYPE;
+
+BEFORE EACH ROW IS
+BEGIN
+    IND := IND + 1;
+    VTFecha(IND) := :NEW.Fecha;
+    VTEL(IND) := :NEW.Equipo_local;
+    VTEV(IND) := :NEW.Equipo_visitante;
+    VTIDP(IND) := :NEW.ID_partido;
+    VTResul(IND) := :NEW.Resultado;
+END BEFORE EACH ROW;
+
+AFTER STATEMENT IS
+BEGIN
+    FOR i IN 1..IND LOOP
+        SELECT CalculoTemp(VTFecha(i)) INTO VTemporada FROM DUAL;
+    
+        SELECT DEREF(VTEL(i)).Nombre, DEREF(VTEV(i)).Nombre 
+        INTO VNLocal, VNVisitante
+        FROM DUAL;
+
+        CheckExisteClasif(VNLocal, VTemporada);
+        CheckExisteClasif(VNVisitante, VTemporada);
+    
+
+        SELECT SUM(Goles) INTO VGolesLocal
+        FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+        WHERE jugador = REF(j) AND j.Equipo = VTEL(i) AND p.ID_partido = VTIDP(i);
+
+    
+        SELECT SUM(Goles) INTO VGolesVisitante
+        FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+        WHERE jugador = REF(j) AND j.Equipo = VTEV(i) AND p.ID_partido = VTIDP(i);
+
+        VTResul(i) := Resultado_objtyp(VGolesLocal, VGolesVisitante, null, null, null);
+        
+        UPDATE Partido_objtab p
+        SET p.Resultado = VTResul(i)
+        WHERE p.ID_Partido = VTIDP(i);
+
+        SELECT c.GolesFavor + VTResul(i).GolesLocal, c.GolesContra + VTResul(i).GolesVisitante INTO VGF, VGC
+        FROM Clasificacion_objtab c
+        WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.GOlesFavor = VGF, c.GolesContra = VGC
+        WHERE c.Equipo = VTEL(i)  AND c.Temporada = VTemporada; 
+
+        SELECT c.GolesFavor + VTResul(i).GolesVisitante, c.GolesContra + VTResul(i).GolesLocal INTO VGF, VGC
+        FROM Clasificacion_objtab c
+        WHERE c.Equipo = VTEV(i)  AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.GOlesFavor = VGF, c.GolesContra = VGC
+        WHERE c.Equipo = VTEV(i)  AND c.Temporada = VTemporada; 
+
+        IF VTResul(i).GolesLocal > VTResul(i).GolesVisitante THEN
+            SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosGanados = VPG
+            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        
+            UPDATE Clasificacion_objtab c
+            SET c.PartidosPerdidos = VPP
+            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+  
+            ELSIF VTResul(i).GolesLocal < VTResul(i).GolesVisitante THEN
+            SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosGanados = VPG
+            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+       
+            UPDATE Clasificacion_objtab c
+            SET c.PartidosPerdidos = VPP
+            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        ELSE 
+            SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+        
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosEmpatados = VPE
+            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+        
+            SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosEmpatados = VPE
+            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        END IF;
+
+    END LOOP;
+END AFTER STATEMENT;
+END;
+/
 
 
 
@@ -1252,23 +1516,6 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool')
 );/
 
-INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
-    VALUES (1, '2022-23', 62, 20, 2, 2, 46, 8,
-            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'FC Barcelona'),
-            (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.id_liga =  1));
-/
-INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
-    VALUES (2, '2022-23', 56, 17, 5, 3, 50, 19,
-            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'Real Madrid CF'),
-            (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.id_liga =  1));
-/
-INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
-    VALUES (3, '2022-23', 54, 16, 6, 3, 45, 20,
-            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'Atlético de Madrid'),
-            (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.id_liga =  1));
-/
-
-
 
 
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
@@ -1309,10 +1556,6 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
                         Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
                         Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
             ));/
-
-
-
-
 
 
 
@@ -1478,7 +1721,7 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
                         Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
                         Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
             ));/
-/*
+
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, jugadores, arbitros)
     VALUES (6, SYSDATE, 12,
             (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Liverpool'),
@@ -1516,37 +1759,32 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
                         Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
                         Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
             ));/
-*/
-
-UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(5, 0, 20, 47, 50))
-WHERE ID_Partido = 1;/
 
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(10, 1, 64, 47, 48))
-WHERE ID_Partido = 2;/
-
+SET Resultado = Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=1), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=1), 64, 47, 50)
+WHERE ID_Partido = 1;
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(2, 1, 107, 45, 50))
+SET Resultado = Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=2), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=2), 107, 47, 48)
+WHERE ID_Partido = 2;
+
+UPDATE Partido_objtab
+SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=3), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=3), 64, 45, 50))
 WHERE ID_Partido = 3;/
 
-
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(1, 1, 70, 47, 52))
+SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=4), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=4), 70, 47, 52))
 WHERE ID_Partido = 4;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(4, 2, 91, 49, 52))
+SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=5), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=5), 91, 49, 52))
 WHERE ID_Partido = 5;/
 
-
-/*
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(2, 2, 'Salah', 48, 50))
+SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=6), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=6), 1000, 48, 50))
 WHERE ID_Partido = 6;/
-*/
+
 
 --CONSULTAS DE JULIÁN
 
@@ -1561,6 +1799,7 @@ HAVING j.ID_persona = p.Resultado.MVP
 ORDER BY NumeroMVPS DESC
 FETCH FIRST 5 ROWS ONLY);
 
+SELECT * FROM TOP5MVP;/
 
 --Muestra los porteros con más porterías imbatidas
 
@@ -1574,6 +1813,15 @@ WHERE DEREF(jugador).Id_persona = j.ID_Persona
 GROUP BY j.Id_persona, j.Nombre, j.Apellido1, DEREF(j.Equipo).Nombre
 ORDER BY PorteriasImbatidas DESC;/
 
+SELECT * FROM MasPorteriasImbatidas;/
+
+SELECT j.Nombre, j.Apellido1 AS Apellido, DEREF(j.Equipo).Nombre AS Equipo--, COUNT(*) AS PorteriasImbatidas
+FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+WHERE DEREF(jugador).Id_persona = j.ID_Persona
+    AND j.Posicion = 'Portero'
+    AND ((j.Equipo = p.Equipo_local AND p.Resultado.GolesVisitante = 0) OR (j.Equipo = p.Equipo_visitante AND p.Resultado.GolesLocal = 0))
+
+SELECT P.RESULTADO.GOLESLOCAL, P.RESULTADO.GOLESVISITANTE FROM PARTIDO_OBJTAB P
 
 --Muestra la tabla de goleadores de la primera división española
 
@@ -1589,6 +1837,7 @@ HAVING SUM(Goles) > 0
 ORDER BY TotalGoles DESC;/
 
 
+SELECT * FROM TablaPichichisLaLiga;/
 
 --PROCEDIMIENTOS DE JULIÁN
 
@@ -1714,278 +1963,4 @@ END;
 SET SERVEROUTPUT ON;
 
 EXECUTE MaxGoleadorPaisTemporada('Brasil');
-
-
--- DISPARADORES DE JULIÁN
-
--- Disparador para mantener la tabla Clasificación actualizada en todo momento
-
-
-
-CREATE SEQUENCE Seq_Clasif  INCREMENT BY 1 START WITH 10 MAXVALUE 9999 CACHE 15 NOCYCLE;
-/
-CREATE OR REPLACE FUNCTION CalculoTemp (Fecha IN DATE) RETURN VARCHAR2 AS
-
-    VYear NUMBER(4);
-    VMes NUMBER(2);
-BEGIN
-    SELECT EXTRACT(year FROM Fecha), EXTRACT(month FROM Fecha) INTO VYear, VMes FROM DUAL;
-
-    IF VMes > 7 THEN 
-        RETURN '' || VYear || '-' || (VYear+1)MOD 2000;
-    ELSIF VMes < 7 THEN
-        RETURN '' || VYear-1 || '-' || (VYear)MOD 2000;
-    ELSE RAISE_APPLICATION_ERROR('-20001','No puede haber partidos en julio, porque hay vacaciones obligatorias');
-    END IF;
-
-END;
-/
-
-CREATE OR REPLACE PROCEDURE CheckExisteClasif(VEquipo in Equipo_objtab.nombre%type, VTemp in Clasificacion_objtab.Temporada%type) 
-IS
-    VID Clasificacion_objtab.ID_clasificacion%type;
-BEGIN
-    SELECT c.ID_clasificacion INTO VID
-    FROM Clasificacion_objtab c
-    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = VEquipo);
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-    IF VID IS NULL THEN
-        INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
-        VALUES (Seq_Clasif.NEXTVAL, VTemp, 0, 0, 0, 0, 0, 0,
-            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre LIKE VEquipo),
-            (SELECT e.liga FROM equipo_objtab e WHERE e.nombre = VEquipo)
-            );
-    END IF;
-END;
-/
-
-/*
-CREATE OR REPLACE TRIGGER Clasificacion_Trigger
-AFTER INSERT OR DELETE OR UPDATE ON Partido_objtab
-FOR EACH ROW
-DECLARE
-    VGolesLocal Partido_objtab.Resultado.GolesLocal%Type;
-    VGolesVisitante Partido_objtab.Resultado.GolesVisitante%Type;
-    VTemporada Clasificacion_objtab.Temporada%TYPE;
-    VPuntos Clasificacion_objtab.Puntos%TYPE;
-    VPG clasificacion_objtab.partidosganados%TYPE;
-    VPE clasificacion_objtab.partidosempatados%TYPE;
-    VPP clasificacion_objtab.partidosperdidos%TYPE;
-    VNLocal equipo_objtab.nombre%type;
-    VNVisitante equipo_objtab.nombre%type;
-BEGIN
-
-    SELECT CalculoTemp(:NEW.Fecha) INTO VTemporada FROM DUAL;
-    
-    SELECT DEREF(:NEW.Equipo_local).Nombre, DEREF(:NEW.Equipo_visitante).Nombre 
-    INTO VNLocal, VNVisitante
-    FROM DUAL;
-
-    CheckExisteClasif(VNLocal, VTemporada);
-    CheckExisteClasif(VNVisitante, VTemporada);
-    
-
-    SELECT SUM(Goles) INTO VGolesLocal
-    FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
-    WHERE jugador = REF(j) AND j.Equipo = :NEW.Equipo_local AND p.ID_partido = :NEW.ID_partido;
-
-    SELECT SUM(Goles) INTO VGolesVisitante
-    FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
-    WHERE jugador = REF(j) AND j.Equipo = :NEW.Equipo_visitante AND p.ID_partido = :NEW.ID_partido;
-
-    
-    :NEW.Resultado := Resultado_objtyp(VGolesLocal, VGolesVisitante, null, null, null);
-    
-
-    SELECT c.GolesFavor + :NEW.Resultado.GolesLocal, c.GolesContra + :NEW.Resultado.GolesVisitante INTO VGF, VGC
-    FROM Clasificacion_objtab c
-    WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
-
-    UPDATE Clasificacion_objtab c
-    SET c.GOlesFavor = VGF, c.GolesContra = VGC
-    WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada; 
-
-    SELECT c.GolesFavor + :NEW.Resultado.GolesVisitante, c.GolesContra + :NEW.Resultado.GolesLocal INTO VGF, VGC
-    FROM Clasificacion_objtab c
-    WHERE c.Equipo = :NEW.Equipo_Visitante AND c.Temporada = VTemporada;
-
-    UPDATE Clasificacion_objtab c
-    SET c.GOlesFavor = VGF, c.GolesContra = VGC
-    WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada; 
-
-    IF :NEW.Resultado.GolesLocal > :NEW.Resultado.GolesVisitante THEN
-        SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
-        SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
-        SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
-
-        UPDATE Clasificacion_objtab c
-        SET c.Puntos = VPuntos,
-            c.PartidosGanados = VPG
-        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
-        
-        UPDATE Clasificacion_objtab c
-        SET c.PartidosPerdidos = VPP
-        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
-  
-    ELSIF :NEW.Resultado.GolesLocal < :NEW.Resultado.GolesVisitante THEN
-        SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
-        SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
-        SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
-
-        UPDATE Clasificacion_objtab c
-        SET c.Puntos = VPuntos,
-            c.PartidosGanados = VPG
-        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
-       
-        UPDATE Clasificacion_objtab c
-        SET c.PartidosPerdidos = VPP
-        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
-    ELSE 
-        SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
-        SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
-        
-        UPDATE Clasificacion_objtab c
-        SET c.Puntos = VPuntos,
-            c.PartidosEmpatados = VPE
-        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
-        
-        SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
-        SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
-        
-        UPDATE Clasificacion_objtab c
-        SET c.Puntos = VPuntos,
-            c.PartidosEmpatados = VPE
-        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
-    END IF;
-END;
-    
-/
-*/
-
-CREATE OR REPLACE TRIGGER Clasificacion_Trigger_C 
-FOR INSERT OR DELETE OR UPDATE ON Partido_objtab
-COMPOUND TRIGGER
-    TYPE TFecha IS TABLE OF Partido_objtab.Fecha%TYPE INDEX BY BINARY_INTEGER;
-    VTFecha TFecha;
-    TYPE TEL IS TABLE OF Partido_objtab.Equipo_local%TYPE INDEX BY BINARY_INTEGER;
-    VTEL TEL;
-    TYPE TEV IS TABLE OF Partido_objtab.Equipo_visitante%TYPE INDEX BY BINARY_INTEGER;
-    VTEV TEV;
-    TYPE TIDP IS TABLE OF Partido_objtab.ID_partido%TYPE INDEX BY BINARY_INTEGER;
-    VTIDP TIDP;
-    TYPE TResul IS TABLE OF Partido_objtab.Resultado%TYPE INDEX BY BINARY_INTEGER;
-    VTResul TResul;
-    IND BINARY_INTEGER:=0;
-    VGolesLocal Partido_objtab.Resultado.GolesLocal%Type;
-    VGolesVisitante Partido_objtab.Resultado.GolesVisitante%Type;
-    VTemporada Clasificacion_objtab.Temporada%TYPE;
-    VPuntos Clasificacion_objtab.Puntos%TYPE;
-    VPG clasificacion_objtab.partidosganados%TYPE;
-    VPE clasificacion_objtab.partidosempatados%TYPE;
-    VPP clasificacion_objtab.partidosperdidos%TYPE;
-    VNLocal equipo_objtab.nombre%type;
-    VNVisitante equipo_objtab.nombre%type;
-    VGC Clasificacion_objtab.GolesContra%TYPE;
-    VGF Clasificacion_objtab.GolesFavor%TYPE;
-
-BEFORE EACH ROW IS
-BEGIN
-    IND := IND + 1;
-    VTFecha(IND) := :NEW.Fecha;
-    VTEL(IND) := :NEW.Equipo_local;
-    VTEV(IND) := :NEW.Equipo_visitante;
-    VTIDP(IND) := :NEW.ID_partido;
-    VTResul(IND) := :NEW.Resultado;
-END BEFORE EACH ROW;
-
-AFTER STATEMENT IS
-BEGIN
-    FOR i IN 1..IND LOOP
-        SELECT CalculoTemp(VTFecha(i)) INTO VTemporada FROM DUAL;
-    
-        SELECT DEREF(VTEL(i)).Nombre, DEREF(VTEV(i)).Nombre 
-        INTO VNLocal, VNVisitante
-        FROM DUAL;
-
-        CheckExisteClasif(VNLocal, VTemporada);
-        CheckExisteClasif(VNVisitante, VTemporada);
-    
-
-        SELECT SUM(Goles) INTO VGolesLocal
-        FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
-        WHERE jugador = REF(j) AND j.Equipo = VTEL(i) AND p.ID_partido = VTIDP(i);
-
-    
-        SELECT SUM(Goles) INTO VGolesVisitante
-        FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
-        WHERE jugador = REF(j) AND j.Equipo = VTEV(i) AND p.ID_partido = VTIDP(i);
-
-        VTResul(i) := Resultado_objtyp(VGolesLocal, VGolesVisitante, null, null, null);
-
-        SELECT c.GolesFavor + VTResul(i).GolesLocal, c.GolesContra + VTResul(i).GolesVisitante INTO VGF, VGC
-        FROM Clasificacion_objtab c
-        WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
-
-        UPDATE Clasificacion_objtab c
-        SET c.GOlesFavor = VGF, c.GolesContra = VGC
-        WHERE c.Equipo = VTEL(i)  AND c.Temporada = VTemporada; 
-
-        SELECT c.GolesFavor + VTResul(i).GolesVisitante, c.GolesContra + VTResul(i).GolesLocal INTO VGF, VGC
-        FROM Clasificacion_objtab c
-        WHERE c.Equipo = VTEV(i)  AND c.Temporada = VTemporada;
-
-        UPDATE Clasificacion_objtab c
-        SET c.GOlesFavor = VGF, c.GolesContra = VGC
-        WHERE c.Equipo = VTEV(i)  AND c.Temporada = VTemporada; 
-
-        IF VTResul(i).GolesLocal > VTResul(i).GolesVisitante THEN
-            SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
-            SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
-            SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
-
-            UPDATE Clasificacion_objtab c
-            SET c.Puntos = VPuntos,
-                c.PartidosGanados = VPG
-            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
-        
-            UPDATE Clasificacion_objtab c
-            SET c.PartidosPerdidos = VPP
-            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
-  
-            ELSIF VTResul(i).GolesLocal < VTResul(i).GolesVisitante THEN
-            SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
-            SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
-            SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
-
-            UPDATE Clasificacion_objtab c
-            SET c.Puntos = VPuntos,
-                c.PartidosGanados = VPG
-            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
-       
-            UPDATE Clasificacion_objtab c
-            SET c.PartidosPerdidos = VPP
-            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
-        ELSE 
-            SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
-            SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
-        
-            UPDATE Clasificacion_objtab c
-            SET c.Puntos = VPuntos,
-                c.PartidosEmpatados = VPE
-            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
-        
-            SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
-            SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
-        
-            UPDATE Clasificacion_objtab c
-            SET c.Puntos = VPuntos,
-                c.PartidosEmpatados = VPE
-            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
-        END IF;
-
-    END LOOP;
-END AFTER STATEMENT;
-END;
-/
 
