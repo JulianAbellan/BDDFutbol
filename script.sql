@@ -1169,13 +1169,6 @@ VALUES (115, 'David  ', 'Alaba', null , 31 , (SELECT REF(p) FROM Pais_objtab p W
 
 
 
-
-INSERT INTO historial_objtab (Id_historial, equipo, TemporadaEntrada)
-    VALUES (0001, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'FC Barcelona'), '2021-22');/
-
-
-
-
 INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
     VALUES(50, 'Marc-André', 'ter Stegen', null, 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Alemania'), 1, 'Portero', 9000000,
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
@@ -1184,12 +1177,10 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
 
 
 
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, Historial)
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo)
     VALUES(51, 'Ronald', 'Araujo', 24, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Uruguay'), 4, 'Defensa', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = 0001)
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona')
 );/
-
-
 
 
 
@@ -1964,3 +1955,682 @@ SET SERVEROUTPUT ON;
 
 EXECUTE MaxGoleadorPaisTemporada('Brasil');
 
+<<<<<<< HEAD
+=======
+
+-- DISPARADORES DE JULIÁN
+
+-- Disparador para mantener la tabla Clasificación actualizada en todo momento
+
+
+
+CREATE SEQUENCE Seq_Clasif  INCREMENT BY 1 START WITH 10 MAXVALUE 9999 CACHE 15 NOCYCLE;
+/
+CREATE OR REPLACE FUNCTION CalculoTemp (Fecha IN DATE) RETURN VARCHAR2 AS
+
+    VYear NUMBER(4);
+    VMes NUMBER(2);
+BEGIN
+    SELECT EXTRACT(year FROM Fecha), EXTRACT(month FROM Fecha) INTO VYear, VMes FROM DUAL;
+
+    IF VMes > 7 THEN 
+        RETURN '' || VYear || '-' || (VYear+1)MOD 2000;
+    ELSIF VMes < 7 THEN
+        RETURN '' || VYear-1 || '-' || (VYear)MOD 2000;
+    ELSE RAISE_APPLICATION_ERROR('-20001','No puede haber partidos en julio, porque hay vacaciones obligatorias');
+    END IF;
+
+END;
+/
+
+CREATE OR REPLACE PROCEDURE CheckExisteClasif(VEquipo in Equipo_objtab.nombre%type, VTemp in Clasificacion_objtab.Temporada%type) 
+IS
+    VID Clasificacion_objtab.ID_clasificacion%type;
+BEGIN
+    SELECT c.ID_clasificacion INTO VID
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = VEquipo);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+    IF VID IS NULL THEN
+        INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
+        VALUES (Seq_Clasif.NEXTVAL, VTemp, 0, 0, 0, 0, 0, 0,
+            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre LIKE VEquipo),
+            (SELECT e.liga FROM equipo_objtab e WHERE e.nombre = VEquipo)
+            );
+    END IF;
+END;
+/
+
+/*
+CREATE OR REPLACE TRIGGER Clasificacion_Trigger
+AFTER INSERT OR DELETE OR UPDATE ON Partido_objtab
+FOR EACH ROW
+DECLARE
+    VGolesLocal Partido_objtab.Resultado.GolesLocal%Type;
+    VGolesVisitante Partido_objtab.Resultado.GolesVisitante%Type;
+    VTemporada Clasificacion_objtab.Temporada%TYPE;
+    VPuntos Clasificacion_objtab.Puntos%TYPE;
+    VPG clasificacion_objtab.partidosganados%TYPE;
+    VPE clasificacion_objtab.partidosempatados%TYPE;
+    VPP clasificacion_objtab.partidosperdidos%TYPE;
+    VNLocal equipo_objtab.nombre%type;
+    VNVisitante equipo_objtab.nombre%type;
+BEGIN
+
+    SELECT CalculoTemp(:NEW.Fecha) INTO VTemporada FROM DUAL;
+    
+    SELECT DEREF(:NEW.Equipo_local).Nombre, DEREF(:NEW.Equipo_visitante).Nombre 
+    INTO VNLocal, VNVisitante
+    FROM DUAL;
+
+    CheckExisteClasif(VNLocal, VTemporada);
+    CheckExisteClasif(VNVisitante, VTemporada);
+    
+
+    SELECT SUM(Goles) INTO VGolesLocal
+    FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+    WHERE jugador = REF(j) AND j.Equipo = :NEW.Equipo_local AND p.ID_partido = :NEW.ID_partido;
+
+    SELECT SUM(Goles) INTO VGolesVisitante
+    FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+    WHERE jugador = REF(j) AND j.Equipo = :NEW.Equipo_visitante AND p.ID_partido = :NEW.ID_partido;
+
+    
+    :NEW.Resultado := Resultado_objtyp(VGolesLocal, VGolesVisitante, null, null, null);
+    
+
+    SELECT c.GolesFavor + :NEW.Resultado.GolesLocal, c.GolesContra + :NEW.Resultado.GolesVisitante INTO VGF, VGC
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+
+    UPDATE Clasificacion_objtab c
+    SET c.GOlesFavor = VGF, c.GolesContra = VGC
+    WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada; 
+
+    SELECT c.GolesFavor + :NEW.Resultado.GolesVisitante, c.GolesContra + :NEW.Resultado.GolesLocal INTO VGF, VGC
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = :NEW.Equipo_Visitante AND c.Temporada = VTemporada;
+
+    UPDATE Clasificacion_objtab c
+    SET c.GOlesFavor = VGF, c.GolesContra = VGC
+    WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada; 
+
+    IF :NEW.Resultado.GolesLocal > :NEW.Resultado.GolesVisitante THEN
+        SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosGanados = VPG
+        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        
+        UPDATE Clasificacion_objtab c
+        SET c.PartidosPerdidos = VPP
+        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+  
+    ELSIF :NEW.Resultado.GolesLocal < :NEW.Resultado.GolesVisitante THEN
+        SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosGanados = VPG
+        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+       
+        UPDATE Clasificacion_objtab c
+        SET c.PartidosPerdidos = VPP
+        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+    ELSE 
+        SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosEmpatados = VPE
+        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        
+        SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosEmpatados = VPE
+        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+    END IF;
+END;
+    
+/
+*/
+
+CREATE OR REPLACE TRIGGER Clasificacion_Trigger_C 
+FOR INSERT OR DELETE OR UPDATE ON Partido_objtab
+COMPOUND TRIGGER
+    TYPE TFecha IS TABLE OF Partido_objtab.Fecha%TYPE INDEX BY BINARY_INTEGER;
+    VTFecha TFecha;
+    TYPE TEL IS TABLE OF Partido_objtab.Equipo_local%TYPE INDEX BY BINARY_INTEGER;
+    VTEL TEL;
+    TYPE TEV IS TABLE OF Partido_objtab.Equipo_visitante%TYPE INDEX BY BINARY_INTEGER;
+    VTEV TEV;
+    TYPE TIDP IS TABLE OF Partido_objtab.ID_partido%TYPE INDEX BY BINARY_INTEGER;
+    VTIDP TIDP;
+    TYPE TResul IS TABLE OF Partido_objtab.Resultado%TYPE INDEX BY BINARY_INTEGER;
+    VTResul TResul;
+    IND BINARY_INTEGER:=0;
+    VGolesLocal Partido_objtab.Resultado.GolesLocal%Type;
+    VGolesVisitante Partido_objtab.Resultado.GolesVisitante%Type;
+    VTemporada Clasificacion_objtab.Temporada%TYPE;
+    VPuntos Clasificacion_objtab.Puntos%TYPE;
+    VPG clasificacion_objtab.partidosganados%TYPE;
+    VPE clasificacion_objtab.partidosempatados%TYPE;
+    VPP clasificacion_objtab.partidosperdidos%TYPE;
+    VNLocal equipo_objtab.nombre%type;
+    VNVisitante equipo_objtab.nombre%type;
+    VGC Clasificacion_objtab.GolesContra%TYPE;
+    VGF Clasificacion_objtab.GolesFavor%TYPE;
+
+BEFORE EACH ROW IS
+BEGIN
+    IND := IND + 1;
+    VTFecha(IND) := :NEW.Fecha;
+    VTEL(IND) := :NEW.Equipo_local;
+    VTEV(IND) := :NEW.Equipo_visitante;
+    VTIDP(IND) := :NEW.ID_partido;
+    VTResul(IND) := :NEW.Resultado;
+END BEFORE EACH ROW;
+
+AFTER STATEMENT IS
+BEGIN
+    FOR i IN 1..IND LOOP
+        SELECT CalculoTemp(VTFecha(i)) INTO VTemporada FROM DUAL;
+    
+        SELECT DEREF(VTEL(i)).Nombre, DEREF(VTEV(i)).Nombre 
+        INTO VNLocal, VNVisitante
+        FROM DUAL;
+
+        CheckExisteClasif(VNLocal, VTemporada);
+        CheckExisteClasif(VNVisitante, VTemporada);
+    
+
+        SELECT SUM(Goles) INTO VGolesLocal
+        FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+        WHERE jugador = REF(j) AND j.Equipo = VTEL(i) AND p.ID_partido = VTIDP(i);
+
+    
+        SELECT SUM(Goles) INTO VGolesVisitante
+        FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+        WHERE jugador = REF(j) AND j.Equipo = VTEV(i) AND p.ID_partido = VTIDP(i);
+
+        VTResul(i) := Resultado_objtyp(VGolesLocal, VGolesVisitante, null, null, null);
+
+        SELECT c.GolesFavor + VTResul(i).GolesLocal, c.GolesContra + VTResul(i).GolesVisitante INTO VGF, VGC
+        FROM Clasificacion_objtab c
+        WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.GOlesFavor = VGF, c.GolesContra = VGC
+        WHERE c.Equipo = VTEL(i)  AND c.Temporada = VTemporada; 
+
+        SELECT c.GolesFavor + VTResul(i).GolesVisitante, c.GolesContra + VTResul(i).GolesLocal INTO VGF, VGC
+        FROM Clasificacion_objtab c
+        WHERE c.Equipo = VTEV(i)  AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.GOlesFavor = VGF, c.GolesContra = VGC
+        WHERE c.Equipo = VTEV(i)  AND c.Temporada = VTemporada; 
+
+        IF VTResul(i).GolesLocal > VTResul(i).GolesVisitante THEN
+            SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosGanados = VPG
+            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        
+            UPDATE Clasificacion_objtab c
+            SET c.PartidosPerdidos = VPP
+            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+  
+            ELSIF VTResul(i).GolesLocal < VTResul(i).GolesVisitante THEN
+            SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosGanados = VPG
+            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+       
+            UPDATE Clasificacion_objtab c
+            SET c.PartidosPerdidos = VPP
+            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        ELSE 
+            SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+        
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosEmpatados = VPE
+            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+        
+            SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosEmpatados = VPE
+            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        END IF;
+
+    END LOOP;
+END AFTER STATEMENT;
+END;
+/
+
+--Consultas JAvier
+
+-- Muestrame el máximo goleador y el jugador con más tarjetas amarillas de cada
+--equipo de todos los equipos de la primera y segunda división española de la temporada actual.
+
+CREATE OR REPLACE VIEW vista1 AS (
+    SELECT nombre, apellido1 AS apellido, golestotales, tarjetasamarillas, j.equipo.nombre AS Equipo
+    FROM jugador_objtab j
+    WHERE j.equipo.liga.division IN (1,2)
+    AND j.equipo.liga.pais.nombre LIKE 'España'
+    AND j.golestotales = (
+        SELECT MAX(golestotales) 
+        FROM jugador_objtab a 
+        WHERE a.equipo=j.equipo)
+    AND j.historial.TemporadaSalida IS NULL
+    UNION
+    SELECT nombre, apellido1, golestotales, tarjetasamarillas, j.equipo.nombre as Equipo
+    FROM jugador_objtab j
+    WHERE j.equipo.liga.division IN (1,2)
+    AND j.equipo.liga.pais.nombre LIKE 'España'
+    AND j.tarjetasamarillas = (
+        SELECT MAX(tarjetasamarillas) 
+        FROM jugador_objtab c 
+        WHERE c.equipo=j.equipo)
+    AND j.historial.TemporadaSalida IS NULL
+    )ORDER BY Equipo, golestotales;
+
+SELECT * FROM vista1; --FALTA AÑADIR VALORES EN GOLESTOTALES Y TARJETASAMARILLAS EN LA BBDD
+
+
+-- Muestrame los jugadores españoles del Real Madrid que hayan jugado un partido entero sin recibir ninguna amonestación en la temporada actual y el número de ellos (nº de partidos)
+
+CREATE OR REPLACE VIEW vista2 AS (
+SELECT j.nombre, j.apellido1 AS Apellido, (SELECT COUNT(*)
+    FROM Partido_objtab p, TABLE(p.jugadores) pp
+    WHERE pp.jugador.Id_persona = j.Id_persona
+    AND pp.minutoEntrada = 0
+    AND pp.minutoSalida IS NULL
+    AND pp.tarjetaRoja = 0
+    AND pp.tarjetaAmarilla1 = 0
+    AND pp.tarjetaAmarilla2 = 0
+    AND p.fecha BETWEEN TO_DATE('13/08/2', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
+    ) AS Partidos
+FROM Jugador_objtab j
+WHERE j.equipo.nombre LIKE 'Real Madrid CF'
+AND j.pais.nombre LIKE 'España'
+AND j.historial.temporadaSalida IS NULL
+AND j.Id_persona IN (
+    SELECT pp.jugador.Id_persona
+    FROM Partido_objtab p, TABLE(p.jugadores) pp
+    WHERE pp.minutoEntrada = 0
+    AND pp.minutoSalida IS NULL
+    AND pp.tarjetaRoja  = 0
+    AND pp.tarjetaAmarilla1 = 0
+    AND pp.tarjetaAmarilla2 = 0
+    AND p.fecha BETWEEN TO_DATE('13/08/22', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
+    )
+);
+SELECT * FROM vista2;
+
+-- De los dos equipos de LaLiga Santander cuyo estadio tengan más aforo máximo,
+--muestrame la suma de los minutos jugados de los delanteros de estos equipos con un sueldo menor a 7.000.000€ de todas las temporadas
+
+CREATE OR REPLACE VIEW vista3 AS (
+SELECT count(*) AS numJugadores, SUM(j.minutosjugados) AS MinutosTotales
+FROM jugador_objtab j
+WHERE j.equipo.ID_equipo IN (
+    SELECT ID_equipo
+    FROM equipo_objtab q
+    WHERE q.liga.nombre LIKE 'LaLiga Santander'
+    ORDER BY q.estadio.aforomaximo DESC
+    FETCH FIRST 2 ROWS ONLY)
+AND j.posicion LIKE 'Delantero'
+AND j.Sueldo <= 7000000
+);
+SELECT * FROM vista3; --FALTA AÑADIR VALORES EN MINUTOSJUGADOS EN LA BBDD
+
+
+ ----------------------------------------------------------------   
+
+--*/*/*/*/*/*/*/*/*/*/*/*/*/**/*/*/
+
+-------------PROCEDIMIENTOS JAVIER
+
+-- Este procedimiento permite realizar el transpaso de un jugador actual a otro equipo,
+-- para lo que se necesitará el jugador, el equipo, su nuevo sueldo y el precio del fichaje.
+
+
+CREATE OR REPLACE PROCEDURE Fichar_Jugador(p_jugador IN Jugador_objtab.ID_persona%TYPE, p_equipo IN Equipo_objtab.ID_equipo%TYPE, p_sueldo IN Jugador_objtab.Sueldo%TYPE, p_precio IN Equipo_objtab.Presupuesto%TYPE)
+IS
+v_equipo Equipo_objtab.Nombre%TYPE;
+v_antiguo_equipo Equipo_objtab.Nombre%TYPE;
+v_jugador Jugador_objtab.Nombre%TYPE;
+v_sueldo Jugador_objtab.Sueldo%TYPE := p_sueldo;
+v_historial Jugador_objtab.Historial%TYPE;
+v_temp_salida Historial_objtab.TemporadaSalida%TYPE;
+v_presupuesto Equipo_objtab.Presupuesto%TYPE;
+
+v_temporada Historial_objtab.TemporadaSalida%TYPE;
+v_anio NUMBER;
+v_mes NUMBER;
+
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('~ Realizando fichaje... ~');
+
+    IF p_jugador IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20010, 'Debes de indicar el id de un jugador.');
+    END IF;
+    IF p_equipo IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20020, 'Debes de indicar el id de un equipo.');
+    END IF;
+    IF p_sueldo <= 0 OR p_sueldo IS NULL THEN --Si no pasamos el sueldo o el que pasamos no es válido asignamos 5M
+        v_sueldo := 5000000;
+    END IF;
+    IF p_precio < 0 OR p_precio IS NULL THEN
+         RAISE_APPLICATION_ERROR(-20090, 'Precio por el transpaso no válido.');
+    END IF;
+    
+    SELECT Nombre, Presupuesto INTO v_equipo, v_presupuesto
+    FROM Equipo_objtab
+    WHERE ID_equipo = p_Equipo;
+    
+
+    IF v_equipo IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
+    END IF;
+        
+    IF v_presupuesto < p_precio THEN
+        RAISE_APPLICATION_ERROR(-20080, 'El ' || v_equipo || ' no tiene suficiente presupuesto.');
+    END IF;
+    
+    SELECT j.Nombre, j.Equipo.Nombre, j.Historial, j.Historial.TemporadaSalida INTO v_jugador, v_antiguo_equipo, v_historial, v_temp_salida
+    FROM Jugador_objtab j
+    WHERE j.ID_persona = p_jugador;
+    
+    
+    IF v_jugador IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20040, 'El jugador introducido no existe.');
+    END IF;
+    
+    IF v_historial IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20050, 'El jugador no dispone de historial.');
+    END IF;
+    
+    IF v_temp_salida IS NOT NULL THEN
+        RAISE_APPLICATION_ERROR(-20060, 'Este jugador no puede ser fichado.');
+    END IF; --Porque tiene el historial cerrado.
+    
+    
+    IF v_antiguo_equipo = v_equipo THEN
+        RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
+    END IF;
+    
+    --Calculamos la temporada en la que estamos
+    SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
+    
+    IF v_mes >= 7 THEN
+        v_temporada := TO_CHAR(v_anio) || '-' || SUBSTR(TO_CHAR(v_anio+1), 3, 2);
+    ELSE
+        v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
+    END IF;
+
+    --Actualizamos su historial con el antiguo club
+    UPDATE Historial_objtab
+    SET TemporadaSalida = v_temporada
+    WHERE Id_historial = (
+        SELECT j.Historial.Id_historial 
+        FROM Jugador_objtab j 
+        WHERE j.Id_persona = p_jugador
+    );
+
+
+    --Creamos el nuevo historial
+    INSERT INTO Historial_objtab (Id_historial, equipo, TemporadaEntrada)
+    VALUES (
+        (SELECT MAX(id_historial) + 1 FROM Historial_objtab),
+        (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = v_equipo),
+        v_temporada);
+    
+   
+    --Añado el nuevo jugador
+    INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales, Equipo, Historial)
+    VALUES (
+    (SELECT COALESCE(MAX(TO_NUMBER(id_persona)), 0) + 1 FROM jugador_objtab),
+    (SELECT j.Nombre FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Apellido1 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Apellido2 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Edad FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Pais FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Dorsal FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.Posicion FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    v_sueldo,
+    (SELECT j.TarjetasRojas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.TarjetasAmarillas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.PartidosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.MinutosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT j.GolesTotales FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.ID_equipo = p_equipo),
+    (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
+    );
+    
+    UPDATE Equipo_objtab
+    SET Presupuesto = Presupuesto - p_precio
+    WHERE ID_equipo = p_equipo;
+    
+    DBMS_OUTPUT.PUT_LINE('*** NUEVO FICHAJE!   ['|| v_jugador ||' ABANDONA ' || v_antiguo_equipo || ' Y SE INCORPORA AL ' || v_equipo || ' Por ' || p_precio || '€]  !! ***');
+    
+    EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('SQLCODE: ' || SQLCODE);
+        DBMS_OUTPUT.PUT_LINE('SQLERRM: ' || SQLERRM);
+END;
+/
+
+EXECUTE Fichar_Jugador(51, 3, 6000000, 111);
+
+
+
+
+-- Debido a un nuevo reglamento de la FIFA, todos los estadios de una misma liga
+--tinen que aumentar el aforo máximo de su estadio dependiendo del presupuesto del club.
+--Dada una liga, por cada 1 millón de presupuesto del club, aumenta en 100 el aforo de los estadios de todos los equipos de esa liga,
+-- y substrae en un 10% el presupuesto total del club por ello.
+
+
+
+CREATE OR REPLACE PROCEDURE actualizar_aforo_y_presupuesto(
+    p_liga IN LigaFutbol_objtab.ID_liga%TYPE
+)
+IS
+
+    CURSOR c_equipos_cursor IS
+        SELECT e.id_equipo, e.nombre,
+        e.estadio.AforoMaximo as Aforo,
+        e.estadio.id_estadio as idestadio,
+        e.estadio.nombre as estadionombre,
+        e.club.presupuesto as presupuestoclub,
+        e.club.id_club as idclub
+        FROM equipo_objtab e
+        WHERE e.Liga.ID_liga = p_liga
+        FOR UPDATE;
+        
+    v_presupuesto Club_objtab.presupuesto%TYPE;
+    v_nuevo_aforo estadio_objtab.AforoMaximo%TYPE;
+    v_liga ligafutbol_objtab.id_liga%TYPE;
+BEGIN   
+
+    --verifico si la liga existe en la tabla
+    SELECT ID_liga INTO v_liga
+    FROM LigaFutbol_objtab
+    WHERE ID_liga = p_liga;
+
+    IF SQL%NOTFOUND THEN
+        RAISE_APPLICATION_ERROR(-20010, '');
+    END IF;
+    
+    DBMS_OUTPUT.PUT_LINE(' ');
+    FOR r_equipo IN c_equipos_cursor LOOP
+        
+        IF r_equipo.idclub IS NOT NULL THEN
+        IF r_equipo.presupuestoclub < 1000000 THEN
+            DBMS_OUTPUT.PUT_LINE('El club del ' || r_equipo.nombre || ' no tiene suficiente presupuesto.');
+            DBMS_OUTPUT.PUT_LINE(' ');
+        ELSE
+            
+            -- Calcular el nuevo aforo del estadio del equipo
+            v_nuevo_aforo := r_equipo.Aforo + (FLOOR(r_equipo.presupuestoclub / 1000000) * 100);
+            
+            -- Actualizar el aforo del estadio del equipo
+            UPDATE estadio_objtab
+            SET AforoMaximo = v_nuevo_aforo
+            WHERE id_estadio = r_equipo.idestadio;
+            
+            -- Calcular el nuevo presupuesto del club del equipo
+            v_presupuesto := r_equipo.presupuestoclub * 0.9;
+            
+            -- Actualizar el presupuesto del club del equipo
+            UPDATE club_objtab
+            SET presupuesto = v_presupuesto
+            WHERE id_club = r_equipo.idclub;
+            
+            DBMS_OUTPUT.PUT_LINE(r_equipo.nombre || ' [ESTADIO: '|| r_equipo.estadionombre || ' AFORO: ' || r_equipo.Aforo || ' ---> ' || v_nuevo_aforo || ' | PRESUPUESTO CLUB: ' || r_equipo.presupuestoclub || ' --> ' || v_presupuesto || '].');
+            DBMS_OUTPUT.PUT_LINE(' ');
+            
+        END IF;
+        ELSE
+        DBMS_OUTPUT.PUT_LINE( r_equipo.nombre || ' no tiene asociado un club.');
+        DBMS_OUTPUT.PUT_LINE(' ');
+        END IF;
+        
+    END LOOP;
+    COMMIT;
+    
+    EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('La liga introducida no existe.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('SQLCODE: ' || SQLCODE);
+        DBMS_OUTPUT.PUT_LINE('SQLERRM: ' || SQLERRM);
+        ROLLBACK;
+        RAISE;
+END;
+/
+
+EXECUTE actualizar_aforo_y_presupuesto(1);
+
+-- Disparadores
+
+--Disparador que controle que un jugador puede ser insertado en un nuevo equipo
+--(controlando que no supere el tamaño máximo permitido de jugadores por equipo)
+-- y que se le asigne un historial con ese equipo automáticamente.
+
+CREATE OR REPLACE TRIGGER tr_insertar_jugador
+BEFORE INSERT ON jugador_objtab
+FOR EACH ROW
+DECLARE
+    v_num_jugadores NUMBER;
+    v_temporada Historial_objtab.TemporadaEntrada%TYPE;
+    v_id_historial Historial_objtab.Id_historial%TYPE;
+    v_anio NUMBER;
+    v_mes NUMBER;
+BEGIN
+    -- Compruebo que el equipo al que quiero añadir el jugador tiene menos de 25 jugadores
+    SELECT COUNT(*) INTO v_num_jugadores
+    FROM Jugador_objtab j
+    WHERE j.Equipo = :NEW.Equipo
+    AND j.Historial.TemporadaSalida IS NULL;
+    --Lanzo error si no puede ser añadido al equipo.    
+    IF v_num_jugadores >= 25 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'El equipo no puede inscribir más jugadores a la liga.');
+    END IF;
+    
+    --Declaro valores para el Historial
+    SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
+    
+    IF v_mes >= 7 THEN
+        v_temporada := TO_CHAR(v_anio) || '-' || SUBSTR(TO_CHAR(v_anio+1), 3, 2);
+    ELSE
+        v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
+    END IF;
+    
+    SELECT MAX(id_historial) + 1 INTO v_id_historial FROM Historial_objtab;
+    IF v_id_historial IS NULL THEN
+        v_id_historial := 1;
+    END IF;
+    
+    --Creo el nuevo historial que va a ir asociado al jugador    
+    INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
+    VALUES (v_id_historial, :new.Equipo, v_temporada);
+    
+    SELECT REF(h) INTO :NEW.Historial FROM Historial_objtab h WHERE h.id_historial = v_id_historial;
+    
+    -- Añado el historial al jugador que acabo de añadir
+    UPDATE Jugador_objtab j
+    SET j.Historial = :NEW.Historial
+    WHERE Id_persona = :NEW.Id_persona;
+END;
+/
+
+--TRIGGER 2
+
+--DISPARADOR QUE COMPRUEBE LA DISPONIBILIDAD DE LOS ESTADIOS
+--ANTES DE PROGRAMAR UN PARTIDO EN ELLOS, DE MODO QUE SE VERIFIQUE QUE
+--NO SE PUEDEN JUGAR VARIOS PARTIDOS EN EL MISMO ESTADIO EN LA MISMA FECHA Y HORA.
+
+CREATE OR REPLACE TRIGGER tr_comprobar_estadio_disponible
+BEFORE INSERT ON Partido_objtab
+FOR EACH ROW
+DECLARE
+    v_estadio_ocupado NUMBER;
+    v_fecha_partido Partido_objtab.Fecha%TYPE;
+    v_old_fecha Partido_objtab.Fecha%TYPE;
+BEGIN
+    
+    v_old_fecha := :NEW.Fecha;
+    --Compruebo si hay partidos en los que coinciden las fechas y los estadios.
+    v_fecha_partido := :NEW.Fecha;
+    
+    SELECT COUNT(*) INTO v_estadio_ocupado
+    FROM Partido_objtab p
+    WHERE p.Estadio_partido = :NEW.Estadio_partido
+    AND p.Fecha LIKE v_fecha_partido;
+    
+    --Si hay partidos en los que coinciden las fechas y estadios, cambio la fecha a una disponible
+    IF v_estadio_ocupado > 0 THEN 
+        LOOP
+            v_fecha_partido := v_fecha_partido + 1;
+            
+            SELECT COUNT(*) INTO v_estadio_ocupado
+            FROM Partido_objtab p
+            WHERE p.Estadio_partido = :NEW.Estadio_partido
+            AND p.Fecha LIKE v_fecha_partido;
+            
+            EXIT WHEN v_estadio_ocupado = 0;
+        END LOOP;
+        
+        :NEW.Fecha := v_fecha_partido;
+        
+        DBMS_OUTPUT.PUT_LINE(v_old_fecha || ' - ' || :NEW.Hora || 'h --> ' || :NEW.Fecha || ' - ' || :NEW.Hora || 'h.');
+    END IF;
+END;
+/
+>>>>>>> fbd4bd8f94846ccac86c11100c17443180f9e227
