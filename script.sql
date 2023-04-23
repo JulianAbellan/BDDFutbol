@@ -990,10 +990,6 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
 
 
 
-
------------TRIGGERS JULIAN
-
-
 --___________________________________________________________________________________
 
 -- DISPARADORES DE JULIÁN
@@ -1276,6 +1272,10 @@ BEGIN
 END AFTER STATEMENT;
 END;
 /
+
+
+SELECT * FROM Clasificacion_objtab c WHERE c.Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.nombre = 'LaLiga Santander');/
+SELECT * FROM Clasificacion_objtab c WHERE c.Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.nombre = 'Premier League');/
 
 
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
@@ -1767,6 +1767,10 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
                         Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
             ));
 /
+
+
+SELECT * FROM Clasificacion_objtab c WHERE c.Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.nombre = 'LaLiga Santander');/
+SELECT * FROM Clasificacion_objtab c WHERE c.Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.nombre = 'Premier League');/
 
 --CONSULTAS DE JULIÁN
 
