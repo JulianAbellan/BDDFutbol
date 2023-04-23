@@ -1601,7 +1601,7 @@ SELECT p.*, pre.fechacese, pre.fechaposesion, (pre.fechacese - pre.fechaposesion
 
 --2 Disparadores
 
---Si un arbitro arbitra más de 3 partidos con rol distinto al principal se le cambia
+--Si un arbitro arbitra en alguno de los últimos 5 partidos con rol distinto al principal se le cambia
 
 CREATE OR REPLACE TRIGGER CambiarRolArbitro
 FOR INSERT OR UPDATE ON Partido_objtab
@@ -1623,7 +1623,11 @@ BEGIN
     loop
         
         v_partido_id := tablapartido(i);
-    
+
+        -- Obtengo la información del árbitro que haya participado en el partido v__partido_id
+        -- y que en alguno de los últimos 5 partidos haya cambiado de rolprincipal por otro.
+        -- Y si es así se le cambia por este nuevo
+
         FOR vi IN (SELECT arb.Arbitro.ID_Persona AS idpersona, arb.Arbitro.Nombre AS nombre, arb.Arbitro.RolPrincipal AS rolprincipal, arb.Rol AS rol
                         FROM Partido_objtab p, TABLE(p.arbitros) arb
                         WHERE p.ID_Partido = v_partido_id
@@ -1636,14 +1640,12 @@ BEGIN
                         FETCH FIRST 5 ROWS ONLY)
                         )
         loop
+            DBMS_OUTPUT.PUT_LINE('_____________________Se va a actualizar árbitro_____________________');
             DBMS_OUTPUT.PUT_LINE(vi.idpersona || ' ' || vi.nombre || ' ' || vi.rolprincipal || ' ' || vi.rol);
-            
-            UPDATE Arbitro_Objtab SET RolPrincipal = vi.rol WHERE ID_Persona = vi.idpersona;
-        
+             UPDATE Arbitro_Objtab SET RolPrincipal = vi.rol WHERE ID_Persona = vi.idpersona;
         end loop;
-    
+        DBMS_OUTPUT.PUT_LINE(' ');
     end loop;
-
 END AFTER STATEMENT;
 END;
 /
@@ -1654,17 +1656,7 @@ END;
 CREATE OR REPLACE TRIGGER ActualizarJugador
 FOR UPDATE ON Partido_objtab
 COMPOUND TRIGGER
-    v_apellido1 VARCHAR2(20);
-    v_idpersona VARCHAR2(20);
-    v_minutoentrada NUMBER(2);
-    v_minutosalida NUMBER(2);
-    v_tarjetaroja NUMBER(1);
-    v_tarjetaamarilla1 NUMBER(1);
-    v_tarjetaamarilla2 NUMBER(1);
-    v_goles NUMBER(2);
-    v_partido_id2 NUMBER(10);    
     v_partido_id NUMBER(10);        
-    
     variabletemporal NUMBER(10);
     TYPE TPartido IS TABLE OF Partido_objtab.ID_Partido%TYPE INDEX BY BINARY_INTEGER;
     tablapartido TPartido;
@@ -1681,8 +1673,10 @@ BEGIN
     
     v_partido_id := tablapartido(i);
     
-    DBMS_OUTPUT.put_line ('Has insertado el partido: ' || v_partido_id);
-    
+    DBMS_OUTPUT.put_line ('Has actualizado el partido: ' || v_partido_id);
+
+    -- Iteramos la información de cada jugador del partido
+
     FOR vi IN (
     SELECT p.ID_partido AS idpartido, j.Jugador.ID_Persona AS idpersona, j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS minutoentrada, 
     j.MinutoSalida AS minutosalida, j.TarjetaRoja AS tarjetaroja, j.TarjetaAmarilla1 AS amarilla1, j.TarjetaAmarilla2 AS amarilla2, j.Goles AS goles,
@@ -1690,9 +1684,11 @@ BEGIN
     FROM partido_objtab p, TABLE(p.jugadores) j 
     WHERE p.ID_Partido = v_partido_id) loop
     
-    DBMS_OUTPUT.put_line (vi.idpartido || '  ' || vi.idpersona || '  ' || vi.apellido || '  ' || vi.minutoentrada || '  ' || 
+    DBMS_OUTPUT.put_line ('El jugador con estadisticas: ' || vi.idpartido || '  ' || vi.idpersona || '  ' || vi.apellido || '  ' || vi.minutoentrada || '  ' || 
     vi.minutosalida || '  ' || vi.tarjetaroja || '  ' || vi.amarilla1 || '  ' || vi.amarilla2 || '  ' || vi.goles);
     
+    -- Actualizamos cada una de las variables de jugador obtenidas previamente
+
     UPDATE jugador_objtab set 
         TarjetasRojas = (TarjetasRojas + vi.tarjetaroja),
         TarjetasAmarillas = (TarjetasAmarillas + vi.amarilla1 + vi.amarilla2),
@@ -1700,11 +1696,11 @@ BEGIN
         GolesTotales = (GolesTotales + vi.goles)
         WHERE ID_Persona = vi.idpersona;
 
-    DBMS_OUTPUT.put_line ('Se ha actualizado el jugador ' || vi.idpersona);
-           
+    -- Si vi.minutosalida, que es el minuto de salida del jugador del partido, está a nulo, significa que ha estado jugando hasta el final
+    -- Por ello si ha jugado hasta el final el cálculo es: MinutosJugados + vi.minprimera + vi.minsegunda - vi.minutoentrada
+    -- y si ha salido en un momento distinto el cálculo es: MinutosJugados + vi.minutosalida - vi.minutoentrada        
+
     if (vi.minutosalida is NULL) then
-            DBMS_OUTPUT.put_line (vi.minprimera || ' ' || vi.minsegunda || ' ' ||  vi.minutoentrada);
-            
             DBMS_OUTPUT.put_line ( '1 ' ||vi.idpersona || ' ' || (vi.minprimera + vi.minsegunda - vi.minutoentrada));
             UPDATE jugador_objtab set MinutosJugados = MinutosJugados + vi.minprimera + vi.minsegunda - vi.minutoentrada WHERE ID_persona = vi.idpersona;
         else
@@ -1714,10 +1710,10 @@ BEGIN
         
             UPDATE jugador_objtab set MinutosJugados = MinutosJugados + vi.minutosalida - vi.minutoentrada WHERE ID_persona = vi.idpersona;
         end if;           
-           
+
+        DBMS_OUTPUT.put_line ('Se ha actualizado el jugador ' || vi.idpersona || ' ' || vi.apellido);
     END LOOP;
     END LOOP;    
-    
 END AFTER STATEMENT;
 END;
 /
