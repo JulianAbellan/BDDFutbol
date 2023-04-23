@@ -226,20 +226,14 @@ CREATE TYPE nt_juega_typ AS TABLE OF Juega_objtyp;
 CREATE TYPE nt_arbitra_typ AS TABLE OF Arbitra_objtyp;
 /
 
-
-
-
 CREATE OR REPLACE TYPE Resultado_objtyp AS OBJECT (
     GolesLocal NUMBER(2),
     GolesVisitante NUMBER(2),
-    MVP VARCHAR2(50),
+    MVP NUMBER(5),
     MinutosPrimera NUMBER(2),
     MinutosSegunda NUMBER(2)
 );
 /
-
-
-
 
 CREATE OR REPLACE TYPE Partido_objtyp AS OBJECT (
     ID_partido NUMBER(10),
@@ -254,17 +248,11 @@ CREATE OR REPLACE TYPE Partido_objtyp AS OBJECT (
 );
 /
 
-
-
-
 CREATE TABLE Pais_objtab OF Pais_objtyp(
     Nombre PRIMARY KEY,
     Continente NOT NULL
 );
 /
-
-
-
 
 CREATE TABLE Presidente_objtab OF Presidente_objtyp(
     ID_persona PRIMARY KEY,
@@ -276,9 +264,6 @@ CREATE TABLE Presidente_objtab OF Presidente_objtyp(
 );
 /
 
-
-
-
 CREATE TABLE Entrenador_objtab OF Entrenador_objtyp(
     ID_persona PRIMARY KEY,
     Nombre NOT NULL,
@@ -289,22 +274,12 @@ CREATE TABLE Entrenador_objtab OF Entrenador_objtyp(
 );
 /
 
-
-
-
 CREATE TABLE LigaFutbol_objtab OF LigaFutbol_objtyp(
     ID_liga PRIMARY KEY,
     Nombre NOT NULL,
     Division NOT NULL
 );
 /
-
-
-
-
-
-
-
 
 CREATE TABLE Club_objtab OF Club_objtyp(
     ID_club PRIMARY KEY,
@@ -1544,26 +1519,26 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
 */
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(5, 0, 'Fati', 47, 50))
+SET Resultado = (Resultado_objtyp(5, 0, 20, 47, 50))
 WHERE ID_Partido = 1;/
 
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(10, 1, 'Modric', 47, 48))
+SET Resultado = (Resultado_objtyp(10, 1, 64, 47, 48))
 WHERE ID_Partido = 2;/
 
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(2, 1, 'Fati', 45, 50))
+SET Resultado = (Resultado_objtyp(2, 1, 107, 45, 50))
 WHERE ID_Partido = 3;/
 
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(1, 1, 'Oblak', 47, 52))
+SET Resultado = (Resultado_objtyp(1, 1, 70, 47, 52))
 WHERE ID_Partido = 4;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(4, 2, 'Haaland', 49, 52))
+SET Resultado = (Resultado_objtyp(4, 2, 91, 49, 52))
 WHERE ID_Partido = 5;/
 
 
@@ -1579,10 +1554,10 @@ WHERE ID_Partido = 6;/
 
 
 CREATE OR REPLACE VIEW Top5MVP AS(
-SELECT p.Resultado.MVP AS NombreJugador, COUNT(*) AS NumeroMVPS, j.Equipo.Nombre as Equipo
+SELECT j.Nombre AS NombreJugador, j.Apellido1 AS ApellidoJugador, COUNT(*) AS NumeroMVPS, j.Equipo.Nombre as Equipo
 FROM Partido_objtab p, Jugador_objtab j
-GROUP BY p.Resultado.MVP, j.Equipo.Nombre, j.Apellido1
-HAVING j.Apellido1 = p.Resultado.MVP
+GROUP BY p.Resultado.MVP, j.ID_Persona, j.Equipo.Nombre, j.Apellido1, j.Nombre
+HAVING j.ID_persona = p.Resultado.MVP
 ORDER BY NumeroMVPS DESC
 FETCH FIRST 5 ROWS ONLY);
 
@@ -2013,5 +1988,4 @@ BEGIN
 END AFTER STATEMENT;
 END;
 /
-
 
