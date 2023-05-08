@@ -141,8 +141,23 @@ CREATE OR REPLACE TYPE Jugador_objtyp UNDER Persona_objtyp(
     GolesTotales NUMBER(3),
     Equipo REF Equipo_objtyp,
     Historial REF Historial_objtyp
+
+    MEMBER FUNCTION Info_Jugador RETURN VARCHAR2, PRAGMA RESTRICT_REFERENCES(Info_Jugador, RNDS, WNDS, RNPS, WNPS)
 );
 /
+
+
+CREATE OR REPLACE TYPE BODY Jugador_objtyp AS MEMBER FUNCTION Info_Jugador RETURN VARCHAR2 IS
+BEGIN
+
+    IF SELF.Apellido2 IS NULL THEN 
+        RETURN SELF.Nombre || ' ' || SELF.Apellido1 || ', ' || SELF.Edad || ' años';
+    ELSE
+        RETURN SELF.Nombre || ' ' || SELF.Apellido1 || ' ' || SELF.Apellido2 || ', ' || SELF.Edad || ' años';
+    END IF;
+    
+END Info_Jugador;
+
 CREATE OR REPLACE TYPE Arbitro_objtyp UNDER Persona_objtyp(
     RolPrincipal VARCHAR2(35)
 );
