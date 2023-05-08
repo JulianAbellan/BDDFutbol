@@ -1586,7 +1586,7 @@ SELECT * FROM TOP5MVP;/
 CREATE OR REPLACE VIEW MasPorteriasImbatidas AS
 SELECT j.Nombre, j.Apellido1 AS Apellido, DEREF(j.Equipo).Nombre AS Equipo, COUNT(*) AS PorteriasImbatidas
 FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
-WHERE DEREF(jugador).Id_persona = j.ID_Persona
+WHERE REF(j) = jugador
     AND j.Posicion = 'Portero'
     AND ((j.Equipo = p.Equipo_local AND p.Resultado.GolesVisitante = 0) OR (j.Equipo = p.Equipo_visitante AND p.Resultado.GolesLocal = 0))
 GROUP BY j.Id_persona, j.Nombre, j.Apellido1, DEREF(j.Equipo).Nombre
@@ -1600,7 +1600,7 @@ SELECT * FROM MasPorteriasImbatidas;/
 CREATE OR REPLACE VIEW TablaPichichisLaLiga AS
 SELECT j.Nombre, j.Apellido1 AS Apellido, SUM(Goles) AS TotalGoles
 FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
-WHERE DEREF(jugador).Id_persona = j.ID_Persona
+WHERE REF(j) = jugador
     AND (DEREF(p.Equipo_local).Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.Pais = (SELECT REF(pa) FROM Pais_objtab pa WHERE pa.Nombre = 'España') AND Division = 1))
     AND (DEREF(p.Equipo_visitante).Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.Pais = (SELECT REF(pa) FROM Pais_objtab pa WHERE pa.Nombre = 'España') AND Division = 1))
 GROUP BY j.ID_Persona, j.Nombre, j.Apellido1
