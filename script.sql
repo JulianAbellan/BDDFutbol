@@ -357,6 +357,7 @@ ALTER TABLE Partido_objtab ADD(
 
 
 
+
 INSERT INTO Pais_objtab VALUES('España', 'Europa');/
 INSERT INTO Pais_objtab VALUES('Francia', 'Europa');/
 INSERT INTO Pais_objtab VALUES('Italia', 'Europa');/
@@ -395,6 +396,8 @@ INSERT INTO LigaFutbol_objtab VALUES (
     (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Inglaterra') -- Pais
 );
 /
+
+
 
 
 INSERT INTO arbitro_objtab (id_persona ,nombre, rolprincipal, apellido1, pais, edad)
@@ -514,6 +517,11 @@ INSERT INTO estadio_objtab (id_estadio, nombre, ciudad, aforomaximo, direccion)
 
 
 
+
+
+
+
+
 INSERT INTO preside_objtab (presidente, fechaposesion)
     VALUES ((SELECT REF(p) FROM presidente_objtab p WHERE p.nombre = 'Joan'),SYSDATE);
 /
@@ -526,6 +534,8 @@ INSERT INTO preside_objtab (presidente, fechaposesion, FechaCese)
 INSERT INTO preside_objtab (presidente, fechaposesion, FechaCese)
     VALUES ((SELECT REF(p) FROM presidente_objtab p WHERE p.apellido1 = 'Llorica'), '22/04/21', '22/04/23');
 /
+
+
 
 
 INSERT INTO Entrenador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, FueJugador, Pais)
@@ -545,6 +555,7 @@ VALUES (119, 'Josep', 'Guardiola', 'Sala', 52, 1, (SELECT REF(p) FROM Pais_objta
 INSERT INTO Entrenador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, FueJugador, Pais)
 VALUES (120, 'Jürgen', 'Klopp', null, 45, 0, (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Alemania'));
 /
+
 
 INSERT INTO equipo_objtab (id_equipo, nombre, numerotitulos, presupuesto, club, estadio, entrenador, liga)
     VALUES (1, 'FC Barcelona', 26, 900000, (SELECT REF(c) FROM club_objtab c WHERE c.nombre = 'FC Barcelona'),
@@ -984,17 +995,45 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Liverpool'), 0, 0, 0, 0, 0
 );/
 
-
-
 INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
     VALUES (1, '2022-23', 62, 20, 2, 2, 46, 8,
             (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'FC Barcelona'),
             (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.id_liga =  1));
 /
-INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
-    VALUES (2, '2022-23', 56, 17, 5, 3, 50, 19,
-            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'Real Madrid CF'),
-            (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.id_liga =  1));
+CREATE OR REPLACE FUNCTION CalculoTemp (Fecha IN DATE) RETURN VARCHAR2 AS
+
+    VYear NUMBER(4);
+    VMes NUMBER(2);
+BEGIN
+    SELECT EXTRACT(year FROM Fecha), EXTRACT(month FROM Fecha) INTO VYear, VMes FROM DUAL;
+
+    IF VMes > 7 THEN 
+        RETURN '' || VYear || '-' || (VYear+1)MOD 2000;
+    ELSIF VMes < 7 THEN
+        RETURN '' || VYear-1 || '-' || (VYear)MOD 2000;
+    ELSE RAISE_APPLICATION_ERROR('-20001','No puede haber partidos en julio, porque hay vacaciones obligatorias');
+    END IF;
+
+END;
+/
+
+CREATE OR REPLACE PROCEDURE CheckExisteClasif(VEquipo in Equipo_objtab.nombre%type, VTemp in Clasificacion_objtab.Temporada%type) 
+IS
+    VID Clasificacion_objtab.ID_clasificacion%type;
+BEGIN
+    SELECT c.ID_clasificacion INTO VID
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = VEquipo);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+    IF VID IS NULL THEN
+        INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
+        VALUES (Seq_Clasif.NEXTVAL, VTemp, 0, 0, 0, 0, 0, 0,
+            (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre LIKE VEquipo),
+            (SELECT e.liga FROM equipo_objtab e WHERE e.nombre = VEquipo)
+            );
+    END IF;
+END;
 /
 INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
     VALUES (3, '2022-23', 54, 16, 6, 3, 45, 20,
@@ -1002,7 +1041,242 @@ INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosg
             (SELECT REF(l) FROM ligafutbol_objtab l WHERE l.id_liga =  1));
 /
 
+/*
+CREATE OR REPLACE TRIGGER Clasificacion_Trigger
+AFTER INSERT OR DELETE OR UPDATE ON Partido_objtab
+FOR EACH ROW
+DECLARE
+    VGolesLocal Partido_objtab.Resultado.GolesLocal%Type;
+    VGolesVisitante Partido_objtab.Resultado.GolesVisitante%Type;
+    VTemporada Clasificacion_objtab.Temporada%TYPE;
+    VPuntos Clasificacion_objtab.Puntos%TYPE;
+    VPG clasificacion_objtab.partidosganados%TYPE;
+    VPE clasificacion_objtab.partidosempatados%TYPE;
+    VPP clasificacion_objtab.partidosperdidos%TYPE;
+    VNLocal equipo_objtab.nombre%type;
+    VNVisitante equipo_objtab.nombre%type;
+BEGIN
 
+    SELECT CalculoTemp(:NEW.Fecha) INTO VTemporada FROM DUAL;
+    
+    SELECT DEREF(:NEW.Equipo_local).Nombre, DEREF(:NEW.Equipo_visitante).Nombre 
+    INTO VNLocal, VNVisitante
+    FROM DUAL;
+
+    CheckExisteClasif(VNLocal, VTemporada);
+    CheckExisteClasif(VNVisitante, VTemporada);
+    
+
+    SELECT SUM(Goles) INTO VGolesLocal
+    FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+    WHERE jugador = REF(j) AND j.Equipo = :NEW.Equipo_local AND p.ID_partido = :NEW.ID_partido;
+
+    SELECT SUM(Goles) INTO VGolesVisitante
+    FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+    WHERE jugador = REF(j) AND j.Equipo = :NEW.Equipo_visitante AND p.ID_partido = :NEW.ID_partido;
+
+    
+    :NEW.Resultado := Resultado_objtyp(VGolesLocal, VGolesVisitante, null, null, null);
+    
+
+    SELECT c.GolesFavor + :NEW.Resultado.GolesLocal, c.GolesContra + :NEW.Resultado.GolesVisitante INTO VGF, VGC
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+
+    UPDATE Clasificacion_objtab c
+    SET c.GOlesFavor = VGF, c.GolesContra = VGC
+    WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada; 
+
+    SELECT c.GolesFavor + :NEW.Resultado.GolesVisitante, c.GolesContra + :NEW.Resultado.GolesLocal INTO VGF, VGC
+    FROM Clasificacion_objtab c
+    WHERE c.Equipo = :NEW.Equipo_Visitante AND c.Temporada = VTemporada;
+
+    UPDATE Clasificacion_objtab c
+    SET c.GOlesFavor = VGF, c.GolesContra = VGC
+    WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada; 
+
+    IF :NEW.Resultado.GolesLocal > :NEW.Resultado.GolesVisitante THEN
+        SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosGanados = VPG
+        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        
+        UPDATE Clasificacion_objtab c
+        SET c.PartidosPerdidos = VPP
+        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+  
+    ELSIF :NEW.Resultado.GolesLocal < :NEW.Resultado.GolesVisitante THEN
+        SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosGanados = VPG
+        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+       
+        UPDATE Clasificacion_objtab c
+        SET c.PartidosPerdidos = VPP
+        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+    ELSE 
+        SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosEmpatados = VPE
+        WHERE c.Equipo = :NEW.Equipo_visitante AND c.Temporada = VTemporada;
+        
+        SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+        
+        UPDATE Clasificacion_objtab c
+        SET c.Puntos = VPuntos,
+            c.PartidosEmpatados = VPE
+        WHERE c.Equipo = :NEW.Equipo_local AND c.Temporada = VTemporada;
+    END IF;
+END;
+    
+/
+*/
+
+CREATE OR REPLACE TRIGGER Clasificacion_Trigger_C 
+FOR INSERT ON Partido_objtab
+COMPOUND TRIGGER
+    TYPE TFecha IS TABLE OF Partido_objtab.Fecha%TYPE INDEX BY BINARY_INTEGER;
+    VTFecha TFecha;
+    TYPE TEL IS TABLE OF Partido_objtab.Equipo_local%TYPE INDEX BY BINARY_INTEGER;
+    VTEL TEL;
+    TYPE TEV IS TABLE OF Partido_objtab.Equipo_visitante%TYPE INDEX BY BINARY_INTEGER;
+    VTEV TEV;
+    TYPE TIDP IS TABLE OF Partido_objtab.ID_partido%TYPE INDEX BY BINARY_INTEGER;
+    VTIDP TIDP;
+    TYPE TResul IS TABLE OF Partido_objtab.Resultado%TYPE INDEX BY BINARY_INTEGER;
+    VTResul TResul;
+    IND BINARY_INTEGER:=0;
+    VGolesLocal Partido_objtab.Resultado.GolesLocal%Type;
+    VGolesVisitante Partido_objtab.Resultado.GolesVisitante%Type;
+    VTemporada Clasificacion_objtab.Temporada%TYPE;
+    VPuntos Clasificacion_objtab.Puntos%TYPE;
+    VPG clasificacion_objtab.partidosganados%TYPE;
+    VPE clasificacion_objtab.partidosempatados%TYPE;
+    VPP clasificacion_objtab.partidosperdidos%TYPE;
+    VNLocal equipo_objtab.nombre%type;
+    VNVisitante equipo_objtab.nombre%type;
+    VGC Clasificacion_objtab.GolesContra%TYPE;
+    VGF Clasificacion_objtab.GolesFavor%TYPE;
+
+BEFORE EACH ROW IS
+BEGIN
+    IND := IND + 1;
+    VTFecha(IND) := :NEW.Fecha;
+    VTEL(IND) := :NEW.Equipo_local;
+    VTEV(IND) := :NEW.Equipo_visitante;
+    VTIDP(IND) := :NEW.ID_partido;
+    VTResul(IND) := :NEW.Resultado;
+END BEFORE EACH ROW;
+
+AFTER STATEMENT IS
+BEGIN
+    FOR i IN 1..IND LOOP
+        SELECT CalculoTemp(VTFecha(i)) INTO VTemporada FROM DUAL;
+    
+        SELECT DEREF(VTEL(i)).Nombre, DEREF(VTEV(i)).Nombre 
+        INTO VNLocal, VNVisitante
+        FROM DUAL;
+
+        CheckExisteClasif(VNLocal, VTemporada);
+        CheckExisteClasif(VNVisitante, VTemporada);
+    
+
+        SELECT SUM(Goles) INTO VGolesLocal
+        FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+        WHERE jugador = REF(j) AND j.Equipo = VTEL(i) AND p.ID_partido = VTIDP(i);
+
+    
+        SELECT SUM(Goles) INTO VGolesVisitante
+        FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+        WHERE jugador = REF(j) AND j.Equipo = VTEV(i) AND p.ID_partido = VTIDP(i);
+
+        VTResul(i) := Resultado_objtyp(VGolesLocal, VGolesVisitante, null, null, null);
+        
+        UPDATE Partido_objtab p
+        SET p.Resultado = VTResul(i)
+        WHERE p.ID_Partido = VTIDP(i);
+
+        SELECT c.GolesFavor + VTResul(i).GolesLocal, c.GolesContra + VTResul(i).GolesVisitante INTO VGF, VGC
+        FROM Clasificacion_objtab c
+        WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.GOlesFavor = VGF, c.GolesContra = VGC
+        WHERE c.Equipo = VTEL(i)  AND c.Temporada = VTemporada; 
+
+        SELECT c.GolesFavor + VTResul(i).GolesVisitante, c.GolesContra + VTResul(i).GolesLocal INTO VGF, VGC
+        FROM Clasificacion_objtab c
+        WHERE c.Equipo = VTEV(i)  AND c.Temporada = VTemporada;
+
+        UPDATE Clasificacion_objtab c
+        SET c.GOlesFavor = VGF, c.GolesContra = VGC
+        WHERE c.Equipo = VTEV(i)  AND c.Temporada = VTemporada; 
+
+        IF VTResul(i).GolesLocal > VTResul(i).GolesVisitante THEN
+            SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosGanados = VPG
+            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        
+            UPDATE Clasificacion_objtab c
+            SET c.PartidosPerdidos = VPP
+            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+  
+            ELSIF VTResul(i).GolesLocal < VTResul(i).GolesVisitante THEN
+            SELECT c.Puntos + 3 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosGanados + 1 INTO VPG FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosPerdidos + 1 INTO VPP FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosGanados = VPG
+            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+       
+            UPDATE Clasificacion_objtab c
+            SET c.PartidosPerdidos = VPP
+            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        ELSE 
+            SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+        
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosEmpatados = VPE
+            WHERE c.Equipo = VTEV(i) AND c.Temporada = VTemporada;
+        
+            SELECT c.Puntos + 1 INTO VPuntos FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+            SELECT c.PartidosEmpatados + 1 INTO VPE FROM Clasificacion_objtab c WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        
+            UPDATE Clasificacion_objtab c
+            SET c.Puntos = VPuntos,
+                c.PartidosEmpatados = VPE
+            WHERE c.Equipo = VTEL(i) AND c.Temporada = VTemporada;
+        END IF;
+
+    END LOOP;
+END AFTER STATEMENT;
+END;
+/
+
+
+SELECT * FROM Clasificacion_objtab c WHERE c.Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.nombre = 'LaLiga Santander');/
+SELECT * FROM Clasificacion_objtab c WHERE c.Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.nombre = 'Premier League');/
 
 
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
@@ -1043,6 +1317,12 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
                         Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
                         Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
             ));/
+
+
+
+
+
+
 
 
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, jugadores, arbitros)
@@ -1170,8 +1450,8 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
             (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Manchester City'),
             (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Liverpool'),  
             nt_juega_typ(
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Santana')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dias' AND j.Nombre = 'Rúben')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Ederson')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dias') AND j.Nombre = 'Rúben'),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Aké')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Laporte')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Walker')),
@@ -1222,8 +1502,8 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Jota')),
                      
 
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Santana')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dias' AND j.Nombre = 'Rúben')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Ederson')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dias') AND j.Nombre = 'Rúben'),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Aké')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Laporte')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Walker')),
@@ -1234,47 +1514,6 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Foden')),
                         Juega_objtyp(0, null, 0, 0, 0, null, null, null, 1, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Álvarez')),
                         Juega_objtyp(60, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Grealish'))
-            ),
-            nt_arbitra_typ(
-                        Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Lahoz')),
-                        Arbitra_objtyp('Asistente adicional', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Gil')),
-                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
-                        Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
-            ));/
-
-
-
-INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
-    VALUES (100, SYSDATE, 16,
-            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Real Madrid CF'),
-            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'FC Barcelona'),
-            (SELECT REF (e) FROM Estadio_objtab e WHERE e.Nombre = 'Santiago Bernabéu'),
-            nt_juega_typ(
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Courtois')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Carvajal')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Kroos')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Modric')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Vallejo')),
-                        Juega_objtyp(60, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Odriozola')),
-                        Juega_objtyp(45, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Fernández')),
-                        Juega_objtyp(90, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Camavinga')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Tchouameni')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Goes')),
-                        Juega_objtyp(0, 60, 0, 0, 0, null, null, null, 2, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Escocio')),
-                        Juega_objtyp(45, 90, 0, 0, 0, null, null, null, 3, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Pelao')),
-                                               
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'ter Stegen')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Araujo')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alonso')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'García')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alba')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Busquets')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'González')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Roberto')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dembélé')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Lewandowski')),
-                        Juega_objtyp(0, 60, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Torres')),
-                        Juega_objtyp(60, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Fati'))
             ),
             nt_arbitra_typ(
                         Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Lahoz')),
@@ -1329,100 +1568,18 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
 
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(3, 1, 2001, 47, 48))
-WHERE ID_Partido = 101;
-
-
-
-INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
-    VALUES (104, SYSDATE, 16,
-            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'FC Barcelona'),
-            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Real Madrid CF'),
-            (SELECT REF (e) FROM Estadio_objtab e WHERE e.Nombre = 'Spotify Camp Nou'),
-            nt_juega_typ(
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Courtois')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Carvajal')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Kroos')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Modric')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Vallejo')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Odriozola')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Fernández')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Camavinga')),
-                        Juega_objtyp(30, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Tchouameni')),
-                        Juega_objtyp(45, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Goes')),
-                        Juega_objtyp(0, 30, 0, 0, 0, null, null, null, 2, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Escocio')),
-                        Juega_objtyp(0, 45, 0, 0, 0, null, null, null, 1, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Pelao')),
-                                               
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'ter Stegen')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Araujo')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alonso')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'García')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alba')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Busquets')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'González')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Roberto')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dembélé')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Lewandowski')),
-                        Juega_objtyp(90, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Torres')),
-                        Juega_objtyp(0, 90, 0, 0, 0, null, null, null, 17, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Moya'))
-            ),
-            nt_arbitra_typ(
-                        Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Lahoz')),
-                        Arbitra_objtyp('Asistente adicional', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Gil')),
-                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
-                        Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
-            ));
+SET Resultado = (Resultado_objtyp(5, 0, 'Fati', 47, 50))
+WHERE ID_Partido = 1;
 
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(17, 3, 2003, 47, 50))
-WHERE ID_Partido = 104;
+SET Resultado = (Resultado_objtyp(10, 1, 'Modric', 47, 48))
+WHERE ID_Partido = 2;
 
-
-INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
-    VALUES (106, SYSDATE, 16,
-            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'FC Barcelona'),
-            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Real Madrid CF'),
-            (SELECT REF (e) FROM Estadio_objtab e WHERE e.Nombre = 'Spotify Camp Nou'),
-            nt_juega_typ(
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Courtois')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Carvajal')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Kroos')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Modric')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Vallejo')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Odriozola')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Fernández')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Camavinga')),
-                        Juega_objtyp(30, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Tchouameni')),
-                        Juega_objtyp(45, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Goes')),
-                        Juega_objtyp(0, 90, 1, 1, 1, 50, 21, 50, 10, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Guarro')),
-                        Juega_objtyp(90, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Alaba')),
-                                               
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'ter Stegen')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Araujo')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alonso')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'García')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alba')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Busquets')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'González')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Roberto')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dembélé')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Lewandowski')),
-                        Juega_objtyp(90, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Torres')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Dias' AND j.Nombre = 'Rúben'))
-            ),
-            nt_arbitra_typ(
-                        Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Lahoz')),
-                        Arbitra_objtyp('Asistente adicional', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Gil')),
-                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
-                        Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
-            ));
-/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 10, 107, 49, 46))
-WHERE ID_Partido = 106;
-/
+SET Resultado = (Resultado_objtyp(2, 1, 'Fati', 45, 50))
+WHERE ID_Partido = 3;
 
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
     VALUES (107, SYSDATE, 16,
@@ -1465,76 +1622,33 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
 /
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 20, 2006, 46, 47))
-WHERE ID_Partido = 107;
-/
-
-INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
-    VALUES (108, SYSDATE, 13,
-            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Real Madrid CF'),
-            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Atlético de Madrid'), 
-            (SELECT REF (e) FROM Estadio_objtab e WHERE e.Nombre = 'Santiago Bernabéu'),
-            nt_juega_typ(
-                       Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Courtois')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Carvajal')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Kroos')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Modric')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Vallejo')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Odriozola')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Fernández')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Camavinga')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Tchouameni')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Goes')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'de Oliveira')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Díaz')),
-
-
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Oblak')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Hermoso')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Giménez')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Savic')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Molina')),
-                        Juega_objtyp(0, 60, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'de Paul')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Llorente')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Resurrección')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Depay')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 1, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Morata')),
-                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Griezmann')),
-                        Juega_objtyp(0, 90, 1, 1, 1, 81, 51, 81, 10, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Gitanov'))
-                                               
-            ),
-            nt_arbitra_typ(
-                        Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Gil')),
-                        Arbitra_objtyp('Asistente adicional', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Lahoz')),
-                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
-                        Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
-            ));
-/
+SET Resultado = (Resultado_objtyp(1, 1, 'Oblak', 47, 52))
+WHERE ID_Partido = 4;
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 10, 79, 46, 46))
-WHERE ID_Partido = 108;
-
-
+SET Resultado = (Resultado_objtyp(4, 2, 'Haaland', 49, 52))
+WHERE ID_Partido = 5;
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(5, 0, 20, 47, 50))
-WHERE ID_Partido = 1;/
+SET Resultado = (Resultado_objtyp(2, 2, 'Salah', 48, 50))
+WHERE ID_Partido = 6;
 
 
-UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(10, 1, 64, 47, 48))
-WHERE ID_Partido = 2;/
+--CONSULTAS DE JULIAN
 
 
 UPDATE Partido_objtab
 SET Resultado = (Resultado_objtyp(2, 1, 107, 45, 50))
 WHERE ID_Partido = 3;/
 
+CREATE OR REPLACE VIEW Top5MVP AS(
+SELECT p.Resultado.MVP AS NombreJugador, COUNT(*) AS NumeroMVPS, j.Equipo.Nombre as Equipo
+FROM Partido_objtab p, Jugador_objtab j
+GROUP BY p.Resultado.MVP, j.Equipo.Nombre, j.Apellido1
+HAVING j.Apellido1 = p.Resultado.MVP
+ORDER BY NumeroMVPS DESC
+FETCH FIRST 5 ROWS ONLY);
 
-UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(1, 1, 70, 47, 52))
-WHERE ID_Partido = 4;/
 
 UPDATE Partido_objtab
 SET Resultado = (Resultado_objtyp(4, 2, 91, 49, 52))
@@ -1544,8 +1658,15 @@ UPDATE Partido_objtab
 SET Resultado = (Resultado_objtyp(2, 2, 1003, 48, 50))
 WHERE ID_Partido = 6;/
 
+CREATE OR REPLACE VIEW MasPorteriasImbatidas AS
+SELECT j.Nombre, j.Apellido1 AS Apellido, DEREF(j.Equipo).Nombre AS Equipo, COUNT(*) AS PorteriasImbatidas
+FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+WHERE DEREF(jugador).Id_persona = j.ID_Persona
+    AND j.Posicion = 'Portero'
+    AND ((j.Equipo = p.Equipo_local AND p.Resultado.GolesVisitante = 0) OR (j.Equipo = p.Equipo_visitante AND p.Resultado.GolesLocal = 0))
+GROUP BY j.Id_persona, j.Nombre, j.Apellido1, DEREF(j.Equipo).Nombre
+ORDER BY PorteriasImbatidas DESC;
 
---_____________________________________________________________________________________________________
 
 --___________________________________RAÚL CONSULTAS_____________________________________________________
 
@@ -1554,7 +1675,15 @@ WHERE ID_Partido = 6;/
 --Dime el arbitro que
 --participó como asistente en los partidos en cuyo resultado el número de goles del equipo local fue mayor de 5 
 
-CREATE OR REPLACE VIEW arbitroAsistente AS
+CREATE OR REPLACE VIEW TablaPichichisLaLiga AS(
+SELECT j.Nombre, j.Apellido1 AS Apellido, SUM(Goles) AS TotalGoles
+FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+WHERE DEREF(jugador).Id_persona = j.ID_Persona
+    AND (DEREF(p.Equipo_local).Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.Pais = (SELECT REF(pa) FROM Pais_objtab pa WHERE pa.Nombre = 'España') AND Division = 1))
+    AND (DEREF(p.Equipo_visitante).Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.Pais = (SELECT REF(pa) FROM Pais_objtab pa WHERE pa.Nombre = 'España') AND Division = 1))
+GROUP BY j.ID_Persona, j.Nombre, j.Apellido1
+HAVING SUM(Goles) > 0
+ORDER BY TotalGoles DESC);
 
 SELECT * 
     FROM arbitro_objtab a
@@ -1564,12 +1693,10 @@ SELECT *
     WHERE (p.resultado.GolesLocal > 5)  AND a.Rol = 'Asistente')
     ORDER BY a.ID_PERSONA;/
 
- select * from arbitroAsistente;
 
---Dime la clasificación de la LaLiga Santander 
---del equipo haya participado en el partido con más goles como visitante
- 
-CREATE OR REPLACE VIEW EquipoVisitanteGoleador AS
+--PROCEDIMIENTOS DE JULIAN
+
+--Dada un país y una división, muestra todos los equipos con el listado de sus respectivos jugadores
 
 SELECT *
     FROM clasificacion_objtab c
@@ -1617,10 +1744,7 @@ COMPOUND TRIGGER
     
     v_partido_id NUMBER(10);        
 
-BEFORE EACH ROW IS BEGIN
-    IND := IND + 1;
-    tablapartido(IND) := :NEW.ID_Partido;
-END BEFORE EACH ROW;
+EXECUTE InfoLiga('España', 1);
 
 AFTER STATEMENT IS
 BEGIN   
@@ -1656,31 +1780,26 @@ END;
 /
 
 
---Al jugar un partido actualizar el número de minutos jugados de cada jugador
-
-CREATE OR REPLACE TRIGGER ActualizarJugador
-FOR UPDATE ON Partido_objtab
-COMPOUND TRIGGER
-    v_partido_id NUMBER(10);        
-    variabletemporal NUMBER(10);
-    TYPE TPartido IS TABLE OF Partido_objtab.ID_Partido%TYPE INDEX BY BINARY_INTEGER;
-    tablapartido TPartido;
-    IND BINARY_INTEGER:=0;
-
-BEFORE EACH ROW IS BEGIN
-    IND := IND + 1;
-    tablapartido(IND) := :NEW.ID_Partido;
-END BEFORE EACH ROW;
-
-AFTER STATEMENT IS
-BEGIN   
-    FOR i IN 1..IND LOOP
+    SELECT REF(j) BULK COLLECT INTO TJugadores
+    FROM Jugador_objtab j
+    WHERE Pais = (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = p_pais);
     
-    v_partido_id := tablapartido(i);
+    DBMS_OUTPUT.PUT_LINE('========================================================');        
+    DBMS_OUTPUT.PUT_LINE('MOSTRANDO LA TABLA DE GOLEADORES DE ' || UPPER(p_pais));
+    DBMS_OUTPUT.PUT_LINE('========================================================');
     
-    DBMS_OUTPUT.put_line ('Has insertado el partido: ' || v_partido_id);
+    
 
-    -- Iteramos la información de cada jugador del partido
+
+        FOR VJugador IN (SELECT *
+                        FROM Jugador_objtab 
+                        WHERE Pais = (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = p_pais) AND GolesTotales > 0 AND PartidosJugados > 0
+                        ORDER BY GolesTotales) LOOP
+
+                            SELECT j.Nombre, j.Apellido1, j.Apellido2, DEREF(j.Equipo).Nombre, SUM(Goles) INTO VNombre, VApellido1, VApellido2, VEquipo, VGoles
+                            FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
+                            WHERE (DEREF(jugador).Id_persona = j.Id_persona) AND j.id_persona = VJugador.Id_persona
+                            GROUP BY j.Nombre, j.Apellido1, j.Apellido2, DEREF(j.Equipo).Nombre;
 
     FOR vi IN (
     SELECT p.ID_partido AS idpartido, j.Jugador.ID_Persona AS idpersona, j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS minutoentrada, 
@@ -1725,12 +1844,15 @@ END;
 
 SET SERVEROUTPUT ON;
 
+EXECUTE MaxGoleadorPaisTemporada('Brasil');
+EXECUTE MaxGoleadorPaisTemporada('España');
+EXECUTE MaxGoleadorPaisTemporada('Francia');
 
 --_____________________________________________________________________________________________________
 
 --___________________________________RAÚL PROCEDIMIENTOS_____________________________________________________
 
---______________________________________________________________________________________________________
+EXECUTE MaxGoleadorPaisTemporada('Brasil');
 
 --1-2 Procedimientos
 
@@ -1740,28 +1862,4 @@ CREATE OR REPLACE PROCEDURE MinutoSalidaJugador IS
     minutos jugador_objtab.MinutosJugados%TYPE;
 BEGIN
 
-for vi in (    
-    SELECT j.Jugador.ID_persona idpersona, j.Jugador.Apellido1 AS apellido, j.MinutoEntrada AS jugentrada, j.MinutoSalida AS jugsalida, 
-                        p.resultado.MinutosPrimera AS minprimera, p.resultado.MinutosSegunda AS minsegunda, j.Goles AS Goles
-    FROM partido_objtab p, TABLE(p.jugadores) j
-    WHERE j.jugador.ID_persona IS NOT NULL
-    ORDER BY j.jugador.ID_persona
-    ) loop
- 
-    select MinutosJugados INTO minutos FROM jugador_objtab j WHERE ID_persona = vi.idpersona;
-    
-    if (vi.jugsalida is NULL) then
-            SolucionJugador := vi.minprimera + vi.minsegunda - vi.jugentrada;                        
-        else
-            SolucionJugador := vi.jugsalida - vi.jugentrada;
-        end if;
-                
-    IF minutos IS null THEN
-        UPDATE jugador_objtab set MinutosJugados = SolucionJugador WHERE ID_persona = vi.idpersona;
-    ELSE
-        UPDATE jugador_objtab set MinutosJugados = MinutosJugados + SolucionJugador WHERE ID_persona = vi.idpersona;
-    END IF;
-    end loop;
-END;    
 
--- execute MinutoSalidaJugador
