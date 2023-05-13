@@ -67,8 +67,18 @@ CREATE OR REPLACE TYPE LigaFutbol_objtyp AS OBJECT(
     ID_liga NUMBER(10),
     Nombre VARCHAR2(20),
     Division NUMBER(1),
-    Pais REF Pais_objtyp
+    Pais REF Pais_objtyp,
+    MAP MEMBER FUNCTION GetNombreLiga RETURN VARCHAR2
 );
+/
+
+CREATE OR REPLACE TYPE BODY LigaFutbol_objtyp AS
+    MAP MEMBER FUNCTION GetNombreLiga
+    RETURN VARCHAR2 IS
+    BEGIN
+        RETURN SELF.Nombre;
+    END;
+END;
 /
 
 CREATE OR REPLACE TYPE Preside_objtyp AS OBJECT(
@@ -140,7 +150,7 @@ CREATE OR REPLACE TYPE Jugador_objtyp UNDER Persona_objtyp(
     MinutosJugados NUMBER(10),
     GolesTotales NUMBER(3),
     Equipo REF Equipo_objtyp,
-    Historial REF Historial_objtyp
+    Historial REF Historial_objtyp,
 
     MEMBER FUNCTION Info_Jugador RETURN VARCHAR2, PRAGMA RESTRICT_REFERENCES(Info_Jugador, RNDS, WNDS, RNPS, WNPS)
 );
@@ -157,7 +167,8 @@ BEGIN
     END IF;
     
 END Info_Jugador;
-
+END;
+/
 
 
 
