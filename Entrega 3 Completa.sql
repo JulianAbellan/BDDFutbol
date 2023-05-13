@@ -93,8 +93,22 @@ CREATE OR REPLACE TYPE Club_objtyp AS OBJECT(
     Nombre VARCHAR2(20),
     MasaSalarialMaxima NUMBER(10),
     Presupuesto NUMBER(10),
-    Preside Preside_objtyp  
+    Preside Preside_objtyp,
+
+    ORDER MEMBER FUNCTION CompareClub(p_club IN Club_objtyp) RETURN NUMBER  
 );
+/
+
+CREATE OR REPLACE TYPE BODY Club_objtyp AS
+ORDER MEMBER FUNCTION CompareClub(p_club IN Club_objtyp) 
+    RETURN NUMBER IS
+    BEGIN
+        IF p_club.Nombre < self.Nombre THEN RETURN 1;
+        ELSIF p_club.Nombre > self.Nombre THEN RETURN -1;
+        ELSE RETURN 0;
+        END IF;
+    END CompareClub;
+END;
 /
 
 CREATE OR REPLACE TYPE Estadio_objtyp AS OBJECT(
@@ -114,8 +128,22 @@ CREATE OR REPLACE TYPE Equipo_objtyp AS OBJECT(
     Liga REF LigaFutbol_objtyp,
     Estadio REF Estadio_objtyp,
     Club REF Club_objtyp,
-    Entrenador REF Entrenador_objtyp
+    Entrenador REF Entrenador_objtyp,
+
+    ORDER MEMBER FUNCTION CompareEquipo(p_equipo IN Equipo_objtyp) RETURN NUMBER
 );
+/
+
+CREATE OR REPLACE TYPE BODY Equipo_objtyp AS
+ORDER MEMBER FUNCTION CompareEquipo (p_equipo IN Equipo_objtyp)
+    RETURN NUMBER IS
+    BEGIN
+        IF p_equipo.Nombre < self.Nombre THEN RETURN 1;
+        ELSIF p_equipo.Nombre > self.Nombre THEN RETURN -1;
+        ELSE RETURN 0;
+        END IF;
+    END CompareEquipo;
+END;
 /
 CREATE OR REPLACE TYPE Clasificacion_objtyp AS OBJECT(
     ID_clasificacion NUMBER(10),
