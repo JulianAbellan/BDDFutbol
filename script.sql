@@ -1756,7 +1756,57 @@ EXECUTE MaxGoleadorPaisTemporada('Francia');
 
 
 
+-------XML JULIAN
 
+begin
+DBMS_XMLSCHEMA.REGISTERSCHEMA(SCHEMAURL=>'botas.xsd',
+SCHEMADOC=> ' <?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="botas">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element maxOccurs="unbounded" name="bota">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="marca" type="xs:string" />
+                            <xs:element name="modelo" type="xs:string"/>
+                            <xs:element name="pu" type="xs:decimal" />
+                            <xs:element name="talla" default="40">
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:unsignedByte">
+                                        <xs:minInclusive value="35"/>
+                                        <xs:maxInclusive value="50"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:element>
+                            <xs:element name="color">
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:string">
+                                        <xs:enumeration value="Rojo"/>
+                                        <xs:enumeration value="Verde"/>
+                                        <xs:enumeration value="Azul"/>
+                                        <xs:enumeration value="Blanco"/>
+                                        <xs:enumeration value="Negro"/>
+                                        <xs:enumeration value="Amarillo"/>
+                                        <xs:enumeration value="Morado"/>
+                                        <xs:enumeration value="Naranja"/>
+                                        <xs:enumeration value="Gris"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="cod" type="xs:integer" use="required"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>',  LOCAL=>true, GENTYPES=>false, GENBEAN=>false,
+GENTABLES=>false,
+ FORCE=>false, OPTIONS=>DBMS_XMLSCHEMA.REGISTER_BINARYXML,
+OWNER=>USER);
+commit;
+end;
 
 
  -------------------------------------------
