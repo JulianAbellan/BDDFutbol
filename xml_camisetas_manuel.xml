@@ -1,0 +1,195 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="camisetas">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element maxOccurs="unbounded" name="camisetas">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="equipo" type="xs:string" />
+                            <xs:element name="temporada" type="xs:string" />
+                            <xs:element name="jugadortopventas" type="xs:string" />
+                            <xs:element name="precio" type="xs:decimal" />
+                            <xs:element name="dorsal" type="xs:integer" />
+                            <xs:element name="mangalarga" type="xs:boolean" />
+                            <xs:element name="stock" default="1">
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:unsignedByte">
+                                        <xs:minInclusive value="0"/>
+                                        <xs:maxInclusive value="1500"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:element>
+                            <xs:element name="numeroequipacion">
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:unsignedByte">
+                                        <xs:minInclusive value="1"/>
+                                        <xs:maxInclusive value="3"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:element>
+                            <xs:element name="marca" type="xs:string"/>
+                            <xs:element name="color">
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:string">
+                                        <xs:enumeration value="Negro"/>
+                                        <xs:enumeration value="Blanco"/>
+                                        <xs:enumeration value="Azul"/>
+                                        <xs:enumeration value="Naranja"/>
+                                        <xs:enumeration value="Amarillo"/>
+                                        <xs:enumeration value="Rosa"/>
+                                        <xs:enumeration value="Verde"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:element>
+                            <xs:element name="talla">
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:string">
+                                        <xs:enumeration value="XS"/>
+                                        <xs:enumeration value="S"/>
+                                        <xs:enumeration value="M"/>
+                                        <xs:enumeration value="L"/>
+                                        <xs:enumeration value="XL"/>
+                                        <xs:enumeration value="XXL"/>
+                                        <xs:enumeration value="GoldoFunky"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="idcamiseta" type="xs:integer" use="required"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
+
+
+----------------------------------------------------------------
+        PROCEDIMIENTO CREAR TABLA  CAMISETAS.XML MANUEL         
+----------------------------------------------------------------
+
+begin
+ DBMS_XMLSCHEMA.REGISTERSCHEMA(SCHEMAURL=>'camisetas.xsd', 
+SCHEMADOC=>'<?xml version="1.0"
+ encoding="utf-8"?>
+    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+        <xs:element name="camisetas">
+            <xs:complexType>
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" name="camiseta">
+                        <xs:complexType>
+                            <xs:sequence>
+                                <xs:element name="equipo" type="xs:string" />
+                                <xs:element name="temporada" type="xs:string" />
+                                <xs:element name="jugadortopventas" type="xs:string" />
+                                <xs:element name="precio" type="xs:decimal" />
+                                <xs:element name="dorsal" type="xs:integer" />
+                                <xs:element name="mangalarga" type="xs:boolean" />
+                                <xs:element name="stock" default="1">
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:unsignedByte">
+                                            <xs:minInclusive value="0"/>
+                                            <xs:maxInclusive value="1500"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="numeroequipacion">
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:unsignedByte">
+                                            <xs:minInclusive value="1"/>
+                                            <xs:maxInclusive value="3"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="marca" type="xs:string"/>
+                                <xs:element name="color">
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:string">
+                                            <xs:enumeration value="Negro"/>
+                                            <xs:enumeration value="Blanco"/>
+                                            <xs:enumeration value="Azul"/>
+                                            <xs:enumeration value="Naranja"/>
+                                            <xs:enumeration value="Amarillo"/>
+                                            <xs:enumeration value="Rosa"/>
+                                            <xs:enumeration value="Verde"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="talla">
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:string">
+                                            <xs:enumeration value="XS"/>
+                                            <xs:enumeration value="S"/>
+                                            <xs:enumeration value="M"/>
+                                            <xs:enumeration value="L"/>
+                                            <xs:enumeration value="XL"/>
+                                            <xs:enumeration value="XXL"/>
+                                            <xs:enumeration value="GoldoFunky"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                            </xs:sequence>
+                            <xs:attribute name="idcamiseta" type="xs:integer" use="required"/>
+                        </xs:complexType>
+                    </xs:element>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:element>
+    </xs:schema>', LOCAL=>true, GENTYPES=>false, GENBEAN=>false,
+GENTABLES=>false,
+ FORCE=>false, OPTIONS=>DBMS_XMLSCHEMA.REGISTER_BINARYXML,
+OWNER=>USER);
+commit;
+end;
+/
+
+DROP TABLE COMPRA_CAMISETA;
+/
+
+CREATE TABLE COMPRA_CAMISETA(id number, camiseta xmltype)
+XMLTYPE COLUMN camiseta
+STORE AS BINARY XML
+XMLSCHEMA "http://xmlns.oracle.com/xdb/schemas/DBDD_09/camisetas.xsd"
+ELEMENT "camisetas";
+/
+
+INSERT INTO COMPRA_CAMISETA 
+VALUES(1, '<?xml version="1.0"?>
+        <camisetas>
+    <camiseta idcamiseta="1">
+        <equipo>Real Madrid</equipo>
+        <temporada>2022-2023</temporada>
+        <jugadortopventas>Benzema</jugadortopventas>
+        <precio>60</precio>
+        <dorsal>9</dorsal>
+        <mangalarga>true</mangalarga>
+        <stock>100</stock>
+        <numeroequipacion>1</numeroequipacion>
+        <marca>Adidas</marca>
+        <color>Blanco</color>
+        <talla>L</talla>
+    </camiseta>
+    <camiseta idcamiseta="2">
+        <equipo>FC Barcelona</equipo>
+        <temporada>2023</temporada>
+        <jugadortopventas>Messi</jugadortopventas>
+        <precio>70</precio>
+        <dorsal>10</dorsal>
+        <mangalarga>false</mangalarga>
+        <stock>250</stock>
+        <numeroequipacion>2</numeroequipacion>
+        <marca>Nike</marca>
+        <color>Amarillo</color>
+        <talla>M</talla>
+    </camiseta>
+        </camisetas>');
+/
+
+CREATE INDEX idx_compracamiseta ON compra_camiseta(camiseta) INDEXTYPE IS
+XDB.XMLINDEX PARAMETERS
+('PATHS (INCLUDE (/camisetas/camiseta/precio))');
+/
+
+
+SELECT EXTRACT(camiseta, '/camisetas/camiseta/precio/text()') from compra_camiseta c where id = 1;
+EXTRACT(COMPRA_CAMISETA, '/CAMISETAS/CAMISETA/PRECIO/TEXT()')
