@@ -33,6 +33,7 @@ DROP TABLE Entrenador_objtab;
 DROP TABLE Preside_objtab;
 DROP TABLE Historial_objtab;
 DROP TABLE Presidente_objtab;
+DROP TABLE Pedido;
 
 DROP SEQUENCE Seq_Clasif;
 
@@ -2059,7 +2060,121 @@ GENTABLES=>false,
 OWNER=>USER);
 commit;
 end;
+/
 
+--CREAR TABLA
+
+DROP TABLE Pedido;/
+
+CREATE TABLE Pedido (
+  id NUMBER,
+  cantidad NUMBER,
+  botas XMLTYPE
+);
+/
+
+--INSERT
+
+INSERT INTO Pedido (id, cantidad, botas)
+VALUES (
+  1,
+  2,
+  XMLTYPE('
+    <botas>
+      <bota cod="123">
+        <marca>Nike</marca>
+        <modelo>Air Max 90</modelo>
+        <pu>129,99</pu>
+        <talla>42</talla>
+        <color>Blanco</color>
+      </bota>
+      <bota cod="321">
+        <marca>Adidas</marca>
+        <modelo>Continental</modelo>
+        <pu>114,99</pu>
+        <talla>45</talla>
+        <color>Rojo</color>
+      </bota>
+    </botas>'
+  )
+);
+/
+
+INSERT INTO Pedido (id, cantidad, botas)
+VALUES (
+  2,
+  1,
+  XMLTYPE('
+    <botas>
+      <bota cod="789">
+        <marca>Puma</marca>
+        <modelo>RSX3</modelo>
+        <pu>109</pu>
+        <talla>45</talla>
+        <color>Gris</color>
+      </bota>
+    </botas>'
+  )
+);
+/
+
+--APPEND
+
+
+UPDATE Pedido 
+SET botas=appendchildxml(botas,'/botas','
+    <bota cod="567">  
+        <marca>Nike</marca>
+        <modelo>Air Force 1</modelo>
+        <pu>110</pu>
+        <talla>50</talla>
+        <color>Blanco</color>
+    </bota>')
+WHERE id=2;/
+
+--UPDATE
+
+UPDATE Pedido set 
+botas=updatexml(botas,'/botas/bota[@cod="789"]/pu/text()',50)
+WHERE id=2;/
+
+--DELETE
+
+UPDATE Pedido set 
+botas=deletexml(botas,'/botas/bota[@cod="567"]')
+WHERE id=2;/
+
+
+--CONSULTAS
+
+
+SELECT id, cantidad, p.botas.getStringVal() FROM Pedido p;/
+
+SELECT EXTRACT(botas,'/botas/bota/pu').getStringVal() from Pedido p where 
+id=1;/
+
+--XPATH
+
+SELECT id, p.botas.getStringVal() from pedido p where 
+xmlexists('/botas/bota[pu>100 and color="Negro"]'
+passing botas);/
+
+--XQUERY
+
+select id,xmlquery('for $i in /botas/bota
+let $pu:=$i/pu/text() 
+where $pu>0
+ order by $pu
+return <pu valor="{$pu}">
+ { 
+ if ($pu >= 120) then 
+ $pu*1.25
+ else
+ $pu
+ }
+</pu>' 
+PASSING botas RETURNING CONTENT).getStringVal() "Aumento de precio"
+from pedido p;
 
 
 
