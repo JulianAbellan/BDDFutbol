@@ -3111,7 +3111,7 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
 -------XML RAÚL
 
 begin
-DBMS_XMLSCHEMA.REGISTERSCHEMA(SCHEMAURL=>'botas.xsd',
+DBMS_XMLSCHEMA.REGISTERSCHEMA(SCHEMAURL=>'pantalon.xsd',
 SCHEMADOC=> ' <?xml version="1.0" encoding="utf-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="pantalones">
