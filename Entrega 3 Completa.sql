@@ -3099,6 +3099,148 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
 );/
 
+
+
+
+
+
+
+
+
+
+-------XML RAÚL
+
+begin
+DBMS_XMLSCHEMA.REGISTERSCHEMA(SCHEMAURL=>'botas.xsd',
+SCHEMADOC=> ' <?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="pantalones">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element maxOccurs="unbounded" name="pantalon">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="marca" type="xs:string" />
+                            <xs:element name="modelo" type="xs:string"/>
+                            <xs:element name="Equipo" type="xs:string"/>
+                            <xs:element name="talla" default="40">
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:unsignedByte">
+                                        <xs:minInclusive value="8"/>
+                                        <xs:maxInclusive value="20"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:element>
+                            <xs:element name="color">
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:string">
+                                        <xs:enumeration value="Rojo"/>
+                                        <xs:enumeration value="Verde"/>
+                                        <xs:enumeration value="Azul"/>
+                                        <xs:enumeration value="Blanco"/>
+                                        <xs:enumeration value="Negro"/>
+                                        <xs:enumeration value="Amarillo"/>
+                                        <xs:enumeration value="Morado"/>
+                                        <xs:enumeration value="Naranja"/>
+                                        <xs:enumeration value="Gris"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="cod" type="xs:integer" use="required"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>',  LOCAL=>true, GENTYPES=>false, GENBEAN=>false,
+GENTABLES=>false,
+ FORCE=>false, OPTIONS=>DBMS_XMLSCHEMA.REGISTER_BINARYXML,
+OWNER=>USER);
+commit;
+end;
+/
+
+--CREAR TABLA
+
+DROP TABLE Inventario;/
+
+CREATE TABLE Inventario (
+  id NUMBER,
+  stock NUMBER,
+  pantalones XMLTYPE
+);
+/
+
+--INSERT
+
+INSERT INTO Inventario (id, stock, pantalones)
+VALUES (
+  1,
+  50,
+  XMLTYPE('
+    <pantalones>
+      <pantalon cod="123">
+        <marca>Nike</marca>
+        <modelo>Air Max</modelo>
+        <Equipo>FC Barcelona</Equipo>
+        <talla>16</talla>
+        <color>Blanco</color>
+      </pantalon>
+    </pantalones>'
+  )
+);/
+
+
+--APPEND
+UPDATE Inventory
+SET pantalones=appendchildxml(pantalones,'/pantalones','
+    <pantalon cod="567">  
+        <marca>Nike</marca>
+        <modelo>Air Force 1</modelo>
+        <Equipo>FC Barcelona</Equipo>
+        <talla>16</talla>
+        <color>Blanco</color>
+    </pantalon>')
+WHERE id=1;
+
+--UPDATE
+
+UPDATE Inventory SET 
+stock=updatexml(stock,'/pantalones/pantalon[@cod="567"]/stock/text()',50)
+WHERE id=1;
+
+--DELETE
+
+UPDATE Inventory SET 
+pantalones=deletexml(pantalones,'/pantalones/pantalon[@cod="567"]')
+WHERE id=1;
+
+
+--CONSULTAS
+
+SELECT id, stock, p.pantalones.getStringVal() FROM Inventory p;
+
+SELECT EXTRACT(pantalones,'/pantalones/pantalon/marca').getStringVal() from Inventory p where 
+id=1;
+
+--XPATH
+
+select id, xmlquery('for $i in /pantalones/pantalon
+let $talla:=$i/talla/text() 
+where $talla>0
+order by $talla
+return <talla valor="{$talla}">
+ { 
+ if ($talla >= 16) then 
+ $talla*1.25
+ else
+ $talla
+ }
+</talla>' 
+PASSING pantalones RETURNING CONTENT).getStringVal() "Size Increase"
+from Inventory p;
+
 -- El real madrid tiene 20 jugadores, por lo tanto, al añadir estos nuevos jugadores, los 5 primeros se insertan correctamente y se le asigna un historial con el Real Madrid, pero el último jugador no puede ser añadido al superar el límite de jugadores
 
 --TRIGGER 2
