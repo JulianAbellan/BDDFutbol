@@ -200,22 +200,10 @@ END;
 /
 
 CREATE OR REPLACE TYPE Arbitro_objtyp UNDER Persona_objtyp(
-    RolPrincipal VARCHAR2(35),
-    ORDER MEMBER FUNCTION CompararRolPrincipal(p_arbitro in Arbitra_objtyp) RETURN NUMBER
+    RolPrincipal VARCHAR2(35)
 );
 /
 
-CREATE OR REPLACE TYPE BODY Arbitro_objtyp AS
-ORDER MEMBER FUNCTION CompararRolPrincipal(p_arbitro in Arbitro_objtyp)
-    RETURN NUMBER IS
-    BEGIN
-        IF p_arbitro.RolPrincipal < self.RolPrincipal THEN RETURN 1;
-        ELSIF p_arbitro.RolPrincipal > self.RolPrincipal THEN RETURN -1;
-        ELSE RETURN 0;
-        END IF; 
-    END CompararRolPrincipal;
-END;
-/
 
 CREATE OR REPLACE TYPE Juega_objtyp AS OBJECT (
     MinutoEntrada NUMBER(2),
@@ -246,7 +234,7 @@ CREATE TYPE nt_arbitra_typ AS TABLE OF Arbitra_objtyp;
 CREATE OR REPLACE TYPE Resultado_objtyp AS OBJECT (
     GolesLocal NUMBER(2),
     GolesVisitante NUMBER(2),
-    MVP REF Jugador_objtyp;,
+    MVP REF Jugador_objtyp,
     MinutosPrimera NUMBER(2),
     MinutosSegunda NUMBER(2)
 );
@@ -426,7 +414,7 @@ ALTER TABLE nt_arbitra_tab ADD(
 ALTER TABLE Partido_objtab ADD(
     SCOPE FOR (Equipo_local) IS Equipo_objtab,
     SCOPE FOR (Equipo_visitante) IS Equipo_objtab,
-    SCOPE FOR (Estadio_partido) IS Estadio_objtab
+    SCOPE FOR (Estadio_partido) IS Estadio_objtab,
     SCOPE FOR (Resultado.MVP) IS Jugador_objtab);
 /  
 
@@ -1855,7 +1843,7 @@ CREATE OR REPLACE VIEW Top5MVP AS(
 SELECT j.Nombre AS NombreJugador, j.Apellido1 AS ApellidoJugador, COUNT(*) AS NumeroMVPS, j.Equipo.Nombre as Equipo
 FROM Partido_objtab p, Jugador_objtab j
 GROUP BY p.Resultado.MVP, j.ID_Persona, j.Equipo.Nombre, j.Apellido1, j.Nombre
-HAVING j.ID_persona = p.Resultado.MVP
+HAVING REF(j) = p.Resultado.MVP
 ORDER BY NumeroMVPS DESC
 FETCH FIRST 5 ROWS ONLY);
 
