@@ -3240,7 +3240,7 @@ CREATE TABLE Inventario (
 INSERT INTO Inventario (id, stock, pantalones)
 VALUES (
   1,
-  50,
+  2,
   XMLTYPE('
     <pantalones>
       <pantalon cod="123">
@@ -3250,59 +3250,84 @@ VALUES (
         <talla>16</talla>
         <color>Blanco</color>
       </pantalon>
+      <pantalon cod="555">
+        <marca>Puma</marca>
+        <modelo>Panther</modelo>
+        <Equipo>Real Madrid</Equipo>
+        <talla>18</talla>
+        <color>Negro</color>
+      </pantalon>
+    </pantalones>'
+  )
+);/
+
+INSERT INTO Inventario (id, stock, pantalones)
+VALUES (
+  2,
+  1,
+  XMLTYPE('
+    <pantalones>
+      <pantalon cod="789">
+        <marca>Adidas</marca>
+        <modelo>Train</modelo>
+        <Equipo>Juventus</Equipo>
+        <talla>15</talla>
+        <color>Rojo</color>
+      </pantalon>
     </pantalones>'
   )
 );/
 
 
 --APPEND
-UPDATE Inventory
+UPDATE Inventario
 SET pantalones=appendchildxml(pantalones,'/pantalones','
     <pantalon cod="567">  
         <marca>Nike</marca>
-        <modelo>Air Force 1</modelo>
-        <Equipo>FC Barcelona</Equipo>
+        <modelo>SportsWear Tech</modelo>
+        <Equipo>Real Madrid</Equipo>
         <talla>16</talla>
         <color>Blanco</color>
     </pantalon>')
-WHERE id=1;
+WHERE id=2;
 
 --UPDATE
 
-UPDATE Inventory SET 
-stock=updatexml(stock,'/pantalones/pantalon[@cod="567"]/stock/text()',50)
-WHERE id=1;
+UPDATE Inventario SET 
+pantalones=updatexml(pantalones,'/pantalones/pantalon[@cod="567"]/talla/text()',20)
+WHERE id=2;/
 
 --DELETE
 
-UPDATE Inventory SET 
+UPDATE Inventario SET 
 pantalones=deletexml(pantalones,'/pantalones/pantalon[@cod="567"]')
 WHERE id=1;
 
 
 --CONSULTAS
 
-SELECT id, stock, p.pantalones.getStringVal() FROM Inventory p;
+SELECT id, stock, p.pantalones.getStringVal() FROM Inventario p;
 
-SELECT EXTRACT(pantalones,'/pantalones/pantalon/marca').getStringVal() from Inventory p where 
+SELECT EXTRACT(pantalones,'/pantalones/pantalon/marca').getStringVal() from Inventario p where 
 id=1;
+
+
 
 --XPATH
 
+
 select id, xmlquery('for $i in /pantalones/pantalon
-let $talla:=$i/talla/text() 
+let $talla := $i/talla/text() 
 where $talla>0
 order by $talla
 return <talla valor="{$talla}">
  { 
  if ($talla >= 16) then 
- $talla*1.25
- else
  $talla
  }
 </talla>' 
-PASSING pantalones RETURNING CONTENT).getStringVal() "Size Increase"
-from Inventory p;
+PASSING pantalon RETURNING CONTENT).getStringVal() "tallaspantalones"
+                FROM Inventario i;
 
 -- El real madrid tiene 20 jugadores, por lo tanto, al añadir estos nuevos jugadores, los 5 primeros se insertan correctamente y se le asigna un historial con el Real Madrid, pero el último jugador no puede ser añadido al superar el límite de jugadores
 
