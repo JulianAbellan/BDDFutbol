@@ -64,13 +64,16 @@ CREATE OR REPLACE TYPE Entrenador_objtyp UNDER Persona_objtyp(
 );
 /
 
-CREATE TABLE LigaFutbol_objtab OF LigaFutbol_objtyp(
-    ID_liga PRIMARY KEY,
-    Nombre NOT NULL,
-    Division NOT NULL,
+CREATE OR REPLACE TYPE LigaFutbol_objtyp AS OBJECT(
+    ID_liga NUMBER(10),
+    Nombre VARCHAR2(20),
+    Division NUMBER(1),
+    Pais REF Pais_objtyp,
     ORDER MEMBER FUNCTION CompararDivision(p_liga in LigaFutbol_objtyp) RETURN NUMBER
 );
 /
+
+
 
 CREATE OR REPLACE TYPE BODY LigaFutbol_objtyp AS
 ORDER MEMBER FUNCTION CompararDivision(p_liga in LigaFutbol_objtyp)
@@ -81,15 +84,6 @@ ORDER MEMBER FUNCTION CompararDivision(p_liga in LigaFutbol_objtyp)
         ELSE RETURN 0;
         END IF; 
     END CompararDivision;
-END;
-/
-
-CREATE OR REPLACE TYPE BODY LigaFutbol_objtyp AS
-    MAP MEMBER FUNCTION GetNombreLiga
-    RETURN VARCHAR2 IS
-    BEGIN
-        RETURN SELF.Nombre;
-    END;
 END;
 /
 
@@ -129,8 +123,19 @@ CREATE OR REPLACE TYPE Estadio_objtyp AS OBJECT(
     Ciudad VARCHAR2(20),
     AforoMaximo NUMBER(6),
     Direccion VARCHAR2(30),
-    Club REF Club_objtyp
+    Club REF Club_objtyp,
+    
+    MAP MEMBER FUNCTION GetNombreEstadio RETURN VARCHAR2
 );
+/
+
+CREATE OR REPLACE TYPE BODY Estadio_objtyp AS
+    MAP MEMBER FUNCTION GetNombreEstadio
+    RETURN VARCHAR2 IS
+    BEGIN
+        RETURN SELF.Nombre;
+    END;
+END;
 /
 CREATE OR REPLACE TYPE Equipo_objtyp AS OBJECT(
     ID_equipo NUMBER(10),
