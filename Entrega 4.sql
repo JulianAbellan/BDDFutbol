@@ -2893,89 +2893,6 @@ END;
 */
 
 
-
-
--- Disparadores
-
---Disparador que controle que un jugador puede ser insertado en un nuevo equipo
---(controlando que no supere el tamaño máximo permitido de jugadores por equipo)
--- y que se le asigne un historial con ese equipo automáticamente.
-
-CREATE OR REPLACE TRIGGER tr_insertar_jugador
-BEFORE INSERT ON jugador_objtab
-FOR EACH ROW
-DECLARE
-    v_num_jugadores NUMBER;
-    v_temporada Historial_objtab.TemporadaEntrada%TYPE;
-    v_id_historial Historial_objtab.Id_historial%TYPE;
-    v_anio NUMBER;
-    v_mes NUMBER;
-BEGIN
-    -- Compruebo que el equipo al que quiero añadir el jugador tiene menos de 25 jugadores
-    SELECT COUNT(*) INTO v_num_jugadores
-    FROM Jugador_objtab j
-    WHERE j.Equipo = :NEW.Equipo
-    AND j.Historial.TemporadaSalida IS NULL;
-    --Lanzo error si no puede ser añadido al equipo.    
-    IF v_num_jugadores >= 25 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'El equipo no puede inscribir más jugadores a la liga.');
-    END IF;
-    
-    --Declaro valores para el Historial
-    SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
-    
-    IF v_mes >= 7 THEN
-        v_temporada := TO_CHAR(v_anio) || '-' || SUBSTR(TO_CHAR(v_anio+1), 3, 2);
-    ELSE
-        v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
-    END IF;
-    
-    SELECT MAX(id_historial) + 1 INTO v_id_historial FROM Historial_objtab;
-    IF v_id_historial IS NULL THEN
-        v_id_historial := 1;
-    END IF;
-    
-    --Creo el nuevo historial que va a ir asociado al jugador    
-    INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
-    VALUES (v_id_historial, :new.Equipo, v_temporada);
-    
-    SELECT REF(h) INTO :NEW.Historial FROM Historial_objtab h WHERE h.id_historial = v_id_historial;
-    
-    -- Añado el historial al jugador que acabo de añadir
-    UPDATE Jugador_objtab j
-    SET j.Historial = :NEW.Historial
-    WHERE Id_persona = :NEW.Id_persona;
-END;
-/
-
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
-    VALUES(1100, 'Mount', 'Tern', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
-);/
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
-    VALUES(1101, 'Mount', 'Terni', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
-);/
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
-    VALUES(1102, 'Mount', 'Terna', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
-);/
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
-    VALUES(1103, 'Mount', 'Ternu', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
-);/
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
-    VALUES(1104, 'Mount', 'Terno', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
-);/
-INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
-    VALUES(1105, 'Mount', 'Ternos', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
-);/
-
-
-
-
 -------XML RAÚL
 
 begin
@@ -3133,6 +3050,87 @@ return <talla valor="{$talla}">
 </talla>' 
 PASSING pantalon RETURNING CONTENT).getStringVal() "tallaspantalones"
                 FROM Inventario i;
+
+
+-- Disparadores
+
+--Disparador que controle que un jugador puede ser insertado en un nuevo equipo
+--(controlando que no supere el tamaño máximo permitido de jugadores por equipo)
+-- y que se le asigne un historial con ese equipo automáticamente.
+
+CREATE OR REPLACE TRIGGER tr_insertar_jugador
+BEFORE INSERT ON jugador_objtab
+FOR EACH ROW
+DECLARE
+    v_num_jugadores NUMBER;
+    v_temporada Historial_objtab.TemporadaEntrada%TYPE;
+    v_id_historial Historial_objtab.Id_historial%TYPE;
+    v_anio NUMBER;
+    v_mes NUMBER;
+BEGIN
+    -- Compruebo que el equipo al que quiero añadir el jugador tiene menos de 25 jugadores
+    SELECT COUNT(*) INTO v_num_jugadores
+    FROM Jugador_objtab j
+    WHERE j.Equipo = :NEW.Equipo
+    AND j.Historial.TemporadaSalida IS NULL;
+    --Lanzo error si no puede ser añadido al equipo.    
+    IF v_num_jugadores >= 25 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'El equipo no puede inscribir más jugadores a la liga.');
+    END IF;
+    
+    --Declaro valores para el Historial
+    SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
+    
+    IF v_mes >= 7 THEN
+        v_temporada := TO_CHAR(v_anio) || '-' || SUBSTR(TO_CHAR(v_anio+1), 3, 2);
+    ELSE
+        v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
+    END IF;
+    
+    SELECT MAX(id_historial) + 1 INTO v_id_historial FROM Historial_objtab;
+    IF v_id_historial IS NULL THEN
+        v_id_historial := 1;
+    END IF;
+    
+    --Creo el nuevo historial que va a ir asociado al jugador    
+    INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
+    VALUES (v_id_historial, :new.Equipo, v_temporada);
+    
+    SELECT REF(h) INTO :NEW.Historial FROM Historial_objtab h WHERE h.id_historial = v_id_historial;
+    
+    -- Añado el historial al jugador que acabo de añadir
+    UPDATE Jugador_objtab j
+    SET j.Historial = :NEW.Historial
+    WHERE Id_persona = :NEW.Id_persona;
+END;
+/
+
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1100, 'Mount', 'Tern', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1101, 'Mount', 'Terni', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1102, 'Mount', 'Terna', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1103, 'Mount', 'Ternu', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1104, 'Mount', 'Terno', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
+    VALUES(1105, 'Mount', 'Ternos', 'Alves', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
+);/
+
+
 
 -- El real madrid tiene 20 jugadores, por lo tanto, al añadir estos nuevos jugadores, los 5 primeros se insertan correctamente y se le asigna un historial con el Real Madrid, pero el último jugador no puede ser añadido al superar el límite de jugadores
 
