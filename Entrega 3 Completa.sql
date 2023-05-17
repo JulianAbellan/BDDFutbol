@@ -246,7 +246,7 @@ CREATE TYPE nt_arbitra_typ AS TABLE OF Arbitra_objtyp;
 CREATE OR REPLACE TYPE Resultado_objtyp AS OBJECT (
     GolesLocal NUMBER(2),
     GolesVisitante NUMBER(2),
-    MVP REF Jugador_objtyp;,
+    MVP REF Jugador_objtyp,
     MinutosPrimera NUMBER(2),
     MinutosSegunda NUMBER(2)
 );
