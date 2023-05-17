@@ -3385,7 +3385,6 @@ v_antiguo_equipo Equipo_objtab.Nombre%TYPE;
 v_jugador Jugador_objtab.Nombre%TYPE;
 v_sueldo Jugador_objtab.Sueldo%TYPE := p_sueldo;
 v_historial Jugador_objtab.Historial%TYPE;
-v_temp_salida Historial_objtab.TemporadaSalida%TYPE;
 v_presupuesto Equipo_objtab.Presupuesto%TYPE;
 
 v_temporada Historial_objtab.TemporadaSalida%TYPE;
@@ -3408,40 +3407,35 @@ BEGIN
          RAISE_APPLICATION_ERROR(-20090, 'Precio por el transpaso no válido.');
     END IF;
     
-    SELECT Nombre, Presupuesto INTO v_equipo, v_presupuesto
-    FROM Equipo_objtab
-    WHERE ID_equipo = p_Equipo;
-    
-
-    IF v_equipo IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
-    END IF;
+    BEGIN
+        SELECT Nombre, Presupuesto INTO v_equipo, v_presupuesto
+        FROM Equipo_objtab
+        WHERE ID_equipo = p_Equipo;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
+    END;
+            
+    BEGIN        
+        SELECT j.Nombre, j.Equipo.Nombre, j.Historial INTO v_jugador, v_antiguo_equipo, v_historial
+        FROM Jugador_objtab j
+        WHERE j.ID_persona = p_jugador;
         
-    IF v_presupuesto < p_precio THEN
-        RAISE_APPLICATION_ERROR(-20080, 'El ' || v_equipo || ' no tiene suficiente presupuesto.');
-    END IF;
-    
-    SELECT j.Nombre, j.Equipo.Nombre, j.Historial, j.Historial.TemporadaSalida INTO v_jugador, v_antiguo_equipo, v_historial, v_temp_salida
-    FROM Jugador_objtab j
-    WHERE j.ID_persona = p_jugador;
-    
-    
-    IF v_jugador IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20040, 'El jugador introducido no existe.');
-    END IF;
-    
-    IF v_historial IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20050, 'El jugador no dispone de historial.');
-    END IF;
-    
-    IF v_temp_salida IS NOT NULL THEN
-        RAISE_APPLICATION_ERROR(-20060, 'Este jugador no puede ser fichado.');
-    END IF; --Porque tiene el historial cerrado.
-    
-    
-    IF v_antiguo_equipo = v_equipo THEN
-        RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
-    END IF;
+        IF v_historial IS NULL THEN
+            RAISE_APPLICATION_ERROR(-20050, 'El jugador no dispone de historial.');
+        END IF;
+        
+        IF v_antiguo_equipo = v_equipo THEN
+            RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
+        END IF;
+        
+        IF v_presupuesto < p_precio THEN
+            RAISE_APPLICATION_ERROR(-20080, 'El ' || v_equipo || ' no tiene suficiente presupuesto.');
+        END IF;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20040, 'El jugador introducido no existe.');
+    END;
     
     --Calculamos la temporada en la que estamos
     SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
@@ -3452,7 +3446,7 @@ BEGIN
         v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
     END IF;
 
-    --Actualizamos su historial con el antiguo club
+    --Cerramos su historial actual
     UPDATE Historial_objtab
     SET TemporadaSalida = v_temporada
     WHERE Id_historial = (
@@ -3469,28 +3463,22 @@ BEGIN
         (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = v_equipo),
         v_temporada);
     
-   
-    --Añado el nuevo jugador
-    INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales, Equipo, Historial)
-    VALUES (
-    (SELECT COALESCE(MAX(TO_NUMBER(id_persona)), 0) + 1 FROM jugador_objtab),
-    (SELECT j.Nombre FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Apellido1 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Apellido2 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Edad FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Pais FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Dorsal FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Posicion FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    v_sueldo,
-    (SELECT j.TarjetasRojas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.TarjetasAmarillas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.PartidosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.MinutosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.GolesTotales FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.ID_equipo = p_equipo),
-    (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
-    );
+    --Actualizamos su historial
+    UPDATE Jugador_objtab j
+    SET Historial = (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
+    WHERE j.Id_persona = p_jugador;
     
+    --Actualizamos su equipo
+    UPDATE Jugador_objtab j
+    SET Equipo = (SELECT REF(e) FROM equipo_objtab e WHERE e.ID_equipo = p_equipo)
+    WHERE j.Id_persona = p_jugador;
+    
+    --Actualizamos su sueldo
+    UPDATE Jugador_objtab j
+    SET Sueldo = p_sueldo
+    WHERE j.id_persona = p_jugador;
+    
+    -- Se le quita al presupuesto del equipo el precio del fichaje
     UPDATE Equipo_objtab
     SET Presupuesto = Presupuesto - p_precio
     WHERE ID_equipo = p_equipo;
@@ -3508,7 +3496,23 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     VALUES(1008, 'Alvaro', 'Grists', '', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );
+
+INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
+VALUES (1, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), '2020-21');
 /
+UPDATE Jugador_objtab j
+SET Historial = (SELECT REF(h) from historial_objtab h where id_historial = 1)
+WHERE j.id_persona = 1008;
+
+select * from jugador_objtab where id_persona = 1015
+
+--Error: tienes que introducir el id del jugador
+EXECUTE Fichar_Jugador(null, 3, 6000000, 100000);
+--Error: tienes que introducir el id del equipo
+EXECUTE Fichar_Jugador(1008, null, 6000000, 100000);
+--Error: precio de transpaso no válido (o null)
+EXECUTE Fichar_Jugador(1008, 2, 6000000, -100);
+EXECUTE Fichar_Jugador(1008, 2, 6000000, null);
 --Error: no existe el jugador
 EXECUTE Fichar_Jugador(1015, 3, 6000000, 100000); 
 --Error: no existe el equipo
@@ -3516,11 +3520,9 @@ EXECUTE Fichar_Jugador(1008, 100, 6000000, 100000);
 --Error por mismo equipo
 EXECUTE Fichar_Jugador(1008, 1, 6000000, 100000); 
 --Error por no tener presupuesto
-EXECUTE Fichar_jugador(1008 ,3, 6000000, 1000000000); 
---Fichado
+EXECUTE Fichar_jugador(1008 ,2, 6000000, 1000000000); 
+--Fichado (actualizamos su historial, sueldo y equipo, y se le resta el precio de traspaso al equipo que lo ficha)
 EXECUTE Fichar_jugador(1008 ,3, 6000000, 100000); 
---Error: este jugador ya ha sido fichado - historial cerrado
-EXECUTE Fichar_jugador(1008 ,1, 6000000, 100000); 
 
 
 
