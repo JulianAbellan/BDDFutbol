@@ -3504,8 +3504,6 @@ UPDATE Jugador_objtab j
 SET Historial = (SELECT REF(h) from historial_objtab h where id_historial = 1)
 WHERE j.id_persona = 1008;
 
-select * from jugador_objtab where id_persona = 1015
-
 --Error: tienes que introducir el id del jugador
 EXECUTE Fichar_Jugador(null, 3, 6000000, 100000);
 --Error: tienes que introducir el id del equipo
