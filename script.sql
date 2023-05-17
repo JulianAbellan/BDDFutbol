@@ -33,6 +33,7 @@ DROP TABLE Entrenador_objtab;
 DROP TABLE Preside_objtab;
 DROP TABLE Historial_objtab;
 DROP TABLE Presidente_objtab;
+DROP TABLE Pedido;
 
 DROP SEQUENCE Seq_Clasif;
 
@@ -103,9 +104,9 @@ CREATE OR REPLACE TYPE BODY Club_objtyp AS
 ORDER MEMBER FUNCTION CompareClub(p_club IN Club_objtyp) 
     RETURN NUMBER IS
     BEGIN
-        IF p_club.Nombre < self.Nombre RETURN 1;
-        ELSIF p_club.Nombre > self.Nombre RETURN -1;
-        ELSIF RETURN 0;
+        IF p_club.Nombre < self.Nombre THEN RETURN 1;
+        ELSIF p_club.Nombre > self.Nombre THEN RETURN -1;
+        ELSE RETURN 0;
         END IF;
     END CompareClub;
 END;
@@ -135,19 +136,15 @@ CREATE OR REPLACE TYPE Equipo_objtyp AS OBJECT(
 /
 
 CREATE OR REPLACE TYPE BODY Equipo_objtyp AS
-ORDER MEMBER FUNCTION Compare_equipo (p_equipo IN Equipo_objtyp)
+ORDER MEMBER FUNCTION CompareEquipo (p_equipo IN Equipo_objtyp)
     RETURN NUMBER IS
-
     BEGIN
-        IF p_equipo.Nombre < self.Nombre RETURN 1;
-        ELSIF p_equipo.Nombre > self.Nombre RETURN -1;
-        ELSIF RETURN 0;
+        IF p_equipo.Nombre < self.Nombre THEN RETURN 1;
+        ELSIF p_equipo.Nombre > self.Nombre THEN RETURN -1;
+        ELSE RETURN 0;
         END IF;
-    END Compare_equipo;
+    END CompareEquipo;
 END;
-
-
-
 /
 CREATE OR REPLACE TYPE Clasificacion_objtyp AS OBJECT(
     ID_clasificacion NUMBER(10),
@@ -2063,7 +2060,121 @@ GENTABLES=>false,
 OWNER=>USER);
 commit;
 end;
+/
 
+--CREAR TABLA
+
+DROP TABLE Pedido;/
+
+CREATE TABLE Pedido (
+  id NUMBER,
+  cantidad NUMBER,
+  botas XMLTYPE
+);
+/
+
+--INSERT
+
+INSERT INTO Pedido (id, cantidad, botas)
+VALUES (
+  1,
+  2,
+  XMLTYPE('
+    <botas>
+      <bota cod="123">
+        <marca>Nike</marca>
+        <modelo>Air Max 90</modelo>
+        <pu>129,99</pu>
+        <talla>42</talla>
+        <color>Blanco</color>
+      </bota>
+      <bota cod="321">
+        <marca>Adidas</marca>
+        <modelo>Continental</modelo>
+        <pu>114,99</pu>
+        <talla>45</talla>
+        <color>Rojo</color>
+      </bota>
+    </botas>'
+  )
+);
+/
+
+INSERT INTO Pedido (id, cantidad, botas)
+VALUES (
+  2,
+  1,
+  XMLTYPE('
+    <botas>
+      <bota cod="789">
+        <marca>Puma</marca>
+        <modelo>RSX3</modelo>
+        <pu>109</pu>
+        <talla>45</talla>
+        <color>Gris</color>
+      </bota>
+    </botas>'
+  )
+);
+/
+
+--APPEND
+
+
+UPDATE Pedido 
+SET botas=appendchildxml(botas,'/botas','
+    <bota cod="567">  
+        <marca>Nike</marca>
+        <modelo>Air Force 1</modelo>
+        <pu>110</pu>
+        <talla>50</talla>
+        <color>Blanco</color>
+    </bota>')
+WHERE id=2;/
+
+--UPDATE
+
+UPDATE Pedido set 
+botas=updatexml(botas,'/botas/bota[@cod="789"]/pu/text()',50)
+WHERE id=2;/
+
+--DELETE
+
+UPDATE Pedido set 
+botas=deletexml(botas,'/botas/bota[@cod="567"]')
+WHERE id=2;/
+
+
+--CONSULTAS
+
+
+SELECT id, cantidad, p.botas.getStringVal() FROM Pedido p;/
+
+SELECT EXTRACT(botas,'/botas/bota/pu').getStringVal() from Pedido p where 
+id=1;/
+
+--XPATH
+
+SELECT id, p.botas.getStringVal() from pedido p where 
+xmlexists('/botas/bota[pu>100 and color="Negro"]'
+passing botas);/
+
+--XQUERY
+
+select id,xmlquery('for $i in /botas/bota
+let $pu:=$i/pu/text() 
+where $pu>0
+ order by $pu
+return <pu valor="{$pu}">
+ { 
+ if ($pu >= 120) then 
+ $pu*1.25
+ else
+ $pu
+ }
+</pu>' 
+PASSING botas RETURNING CONTENT).getStringVal() "Aumento de precio"
+from pedido p;
 
 
 
@@ -2988,6 +3099,148 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 0, 0, 0, 0, 0
 );/
 
+
+
+
+
+
+
+
+
+
+-------XML RAÚL
+
+begin
+DBMS_XMLSCHEMA.REGISTERSCHEMA(SCHEMAURL=>'pantalon.xsd',
+SCHEMADOC=> ' <?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="pantalones">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element maxOccurs="unbounded" name="pantalon">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="marca" type="xs:string" />
+                            <xs:element name="modelo" type="xs:string"/>
+                            <xs:element name="Equipo" type="xs:string"/>
+                            <xs:element name="talla" default="40">
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:unsignedByte">
+                                        <xs:minInclusive value="8"/>
+                                        <xs:maxInclusive value="20"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:element>
+                            <xs:element name="color">
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:string">
+                                        <xs:enumeration value="Rojo"/>
+                                        <xs:enumeration value="Verde"/>
+                                        <xs:enumeration value="Azul"/>
+                                        <xs:enumeration value="Blanco"/>
+                                        <xs:enumeration value="Negro"/>
+                                        <xs:enumeration value="Amarillo"/>
+                                        <xs:enumeration value="Morado"/>
+                                        <xs:enumeration value="Naranja"/>
+                                        <xs:enumeration value="Gris"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="cod" type="xs:integer" use="required"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>',  LOCAL=>true, GENTYPES=>false, GENBEAN=>false,
+GENTABLES=>false,
+ FORCE=>false, OPTIONS=>DBMS_XMLSCHEMA.REGISTER_BINARYXML,
+OWNER=>USER);
+commit;
+end;
+/
+
+--CREAR TABLA
+
+DROP TABLE Inventario;/
+
+CREATE TABLE Inventario (
+  id NUMBER,
+  stock NUMBER,
+  pantalones XMLTYPE
+);
+/
+
+--INSERT
+
+INSERT INTO Inventario (id, stock, pantalones)
+VALUES (
+  1,
+  50,
+  XMLTYPE('
+    <pantalones>
+      <pantalon cod="123">
+        <marca>Nike</marca>
+        <modelo>Air Max</modelo>
+        <Equipo>FC Barcelona</Equipo>
+        <talla>16</talla>
+        <color>Blanco</color>
+      </pantalon>
+    </pantalones>'
+  )
+);/
+
+
+--APPEND
+UPDATE Inventory
+SET pantalones=appendchildxml(pantalones,'/pantalones','
+    <pantalon cod="567">  
+        <marca>Nike</marca>
+        <modelo>Air Force 1</modelo>
+        <Equipo>FC Barcelona</Equipo>
+        <talla>16</talla>
+        <color>Blanco</color>
+    </pantalon>')
+WHERE id=1;
+
+--UPDATE
+
+UPDATE Inventory SET 
+stock=updatexml(stock,'/pantalones/pantalon[@cod="567"]/stock/text()',50)
+WHERE id=1;
+
+--DELETE
+
+UPDATE Inventory SET 
+pantalones=deletexml(pantalones,'/pantalones/pantalon[@cod="567"]')
+WHERE id=1;
+
+
+--CONSULTAS
+
+SELECT id, stock, p.pantalones.getStringVal() FROM Inventory p;
+
+SELECT EXTRACT(pantalones,'/pantalones/pantalon/marca').getStringVal() from Inventory p where 
+id=1;
+
+--XPATH
+
+select id, xmlquery('for $i in /pantalones/pantalon
+let $talla:=$i/talla/text() 
+where $talla>0
+order by $talla
+return <talla valor="{$talla}">
+ { 
+ if ($talla >= 16) then 
+ $talla*1.25
+ else
+ $talla
+ }
+</talla>' 
+PASSING pantalones RETURNING CONTENT).getStringVal() "Size Increase"
+from Inventory p;
+
 -- El real madrid tiene 20 jugadores, por lo tanto, al añadir estos nuevos jugadores, los 5 primeros se insertan correctamente y se le asigna un historial con el Real Madrid, pero el último jugador no puede ser añadido al superar el límite de jugadores
 
 --TRIGGER 2
@@ -3067,7 +3320,7 @@ CREATE OR REPLACE VIEW vista1 AS (
 SELECT * FROM vista1; --FALTA AÑADIR VALORES EN GOLESTOTALES Y TARJETASAMARILLAS EN LA BBDD
 
 
--- Muestrame los jugadores españoles del Real Madrid que hayan jugado un partido entero sin recibir ninguna amonestación en la temporada actual y el número de ellos (nº de partidos)
+-- Muestrame los jugadores españoles del Real Madrid que hayan jugado un partido entero sin recibir ninguna amonestación en la temporada 2022-23 y el número de ellos (nº de partidos)
 
 CREATE OR REPLACE VIEW vista2 AS (
 SELECT j.nombre, j.apellido1 AS Apellido, (SELECT COUNT(*)
@@ -3078,7 +3331,7 @@ SELECT j.nombre, j.apellido1 AS Apellido, (SELECT COUNT(*)
     AND pp.tarjetaRoja = 0
     AND pp.tarjetaAmarilla1 = 0
     AND pp.tarjetaAmarilla2 = 0
-    AND p.fecha BETWEEN TO_DATE('13/08/2', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
+    AND p.fecha BETWEEN TO_DATE('13/08/22', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
     ) AS Partidos
 FROM Jugador_objtab j
 WHERE j.equipo.nombre LIKE 'Real Madrid CF'
@@ -3132,7 +3385,6 @@ v_antiguo_equipo Equipo_objtab.Nombre%TYPE;
 v_jugador Jugador_objtab.Nombre%TYPE;
 v_sueldo Jugador_objtab.Sueldo%TYPE := p_sueldo;
 v_historial Jugador_objtab.Historial%TYPE;
-v_temp_salida Historial_objtab.TemporadaSalida%TYPE;
 v_presupuesto Equipo_objtab.Presupuesto%TYPE;
 
 v_temporada Historial_objtab.TemporadaSalida%TYPE;
@@ -3155,40 +3407,35 @@ BEGIN
          RAISE_APPLICATION_ERROR(-20090, 'Precio por el transpaso no válido.');
     END IF;
     
-    SELECT Nombre, Presupuesto INTO v_equipo, v_presupuesto
-    FROM Equipo_objtab
-    WHERE ID_equipo = p_Equipo;
-    
-
-    IF v_equipo IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
-    END IF;
+    BEGIN
+        SELECT Nombre, Presupuesto INTO v_equipo, v_presupuesto
+        FROM Equipo_objtab
+        WHERE ID_equipo = p_Equipo;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
+    END;
+            
+    BEGIN        
+        SELECT j.Nombre, j.Equipo.Nombre, j.Historial INTO v_jugador, v_antiguo_equipo, v_historial
+        FROM Jugador_objtab j
+        WHERE j.ID_persona = p_jugador;
         
-    IF v_presupuesto < p_precio THEN
-        RAISE_APPLICATION_ERROR(-20080, 'El ' || v_equipo || ' no tiene suficiente presupuesto.');
-    END IF;
-    
-    SELECT j.Nombre, j.Equipo.Nombre, j.Historial, j.Historial.TemporadaSalida INTO v_jugador, v_antiguo_equipo, v_historial, v_temp_salida
-    FROM Jugador_objtab j
-    WHERE j.ID_persona = p_jugador;
-    
-    
-    IF v_jugador IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20040, 'El jugador introducido no existe.');
-    END IF;
-    
-    IF v_historial IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20050, 'El jugador no dispone de historial.');
-    END IF;
-    
-    IF v_temp_salida IS NOT NULL THEN
-        RAISE_APPLICATION_ERROR(-20060, 'Este jugador no puede ser fichado.');
-    END IF; --Porque tiene el historial cerrado.
-    
-    
-    IF v_antiguo_equipo = v_equipo THEN
-        RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
-    END IF;
+        IF v_historial IS NULL THEN
+            RAISE_APPLICATION_ERROR(-20050, 'El jugador no dispone de historial.');
+        END IF;
+        
+        IF v_antiguo_equipo = v_equipo THEN
+            RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
+        END IF;
+        
+        IF v_presupuesto < p_precio THEN
+            RAISE_APPLICATION_ERROR(-20080, 'El ' || v_equipo || ' no tiene suficiente presupuesto.');
+        END IF;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20040, 'El jugador introducido no existe.');
+    END;
     
     --Calculamos la temporada en la que estamos
     SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
@@ -3199,7 +3446,7 @@ BEGIN
         v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
     END IF;
 
-    --Actualizamos su historial con el antiguo club
+    --Cerramos su historial actual
     UPDATE Historial_objtab
     SET TemporadaSalida = v_temporada
     WHERE Id_historial = (
@@ -3216,28 +3463,22 @@ BEGIN
         (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = v_equipo),
         v_temporada);
     
-   
-    --Añado el nuevo jugador
-    INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales, Equipo, Historial)
-    VALUES (
-    (SELECT COALESCE(MAX(TO_NUMBER(id_persona)), 0) + 1 FROM jugador_objtab),
-    (SELECT j.Nombre FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Apellido1 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Apellido2 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Edad FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Pais FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Dorsal FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Posicion FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    v_sueldo,
-    (SELECT j.TarjetasRojas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.TarjetasAmarillas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.PartidosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.MinutosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.GolesTotales FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.ID_equipo = p_equipo),
-    (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
-    );
+    --Actualizamos su historial
+    UPDATE Jugador_objtab j
+    SET Historial = (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
+    WHERE j.Id_persona = p_jugador;
     
+    --Actualizamos su equipo
+    UPDATE Jugador_objtab j
+    SET Equipo = (SELECT REF(e) FROM equipo_objtab e WHERE e.ID_equipo = p_equipo)
+    WHERE j.Id_persona = p_jugador;
+    
+    --Actualizamos su sueldo
+    UPDATE Jugador_objtab j
+    SET Sueldo = p_sueldo
+    WHERE j.id_persona = p_jugador;
+    
+    -- Se le quita al presupuesto del equipo el precio del fichaje
     UPDATE Equipo_objtab
     SET Presupuesto = Presupuesto - p_precio
     WHERE ID_equipo = p_equipo;
@@ -3255,7 +3496,21 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     VALUES(1008, 'Alvaro', 'Grists', '', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );
+
+INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
+VALUES (1, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), '2020-21');
 /
+UPDATE Jugador_objtab j
+SET Historial = (SELECT REF(h) from historial_objtab h where id_historial = 1)
+WHERE j.id_persona = 1008;
+
+--Error: tienes que introducir el id del jugador
+EXECUTE Fichar_Jugador(null, 3, 6000000, 100000);
+--Error: tienes que introducir el id del equipo
+EXECUTE Fichar_Jugador(1008, null, 6000000, 100000);
+--Error: precio de transpaso no válido (o null)
+EXECUTE Fichar_Jugador(1008, 2, 6000000, -100);
+EXECUTE Fichar_Jugador(1008, 2, 6000000, null);
 --Error: no existe el jugador
 EXECUTE Fichar_Jugador(1015, 3, 6000000, 100000); 
 --Error: no existe el equipo
@@ -3263,11 +3518,9 @@ EXECUTE Fichar_Jugador(1008, 100, 6000000, 100000);
 --Error por mismo equipo
 EXECUTE Fichar_Jugador(1008, 1, 6000000, 100000); 
 --Error por no tener presupuesto
-EXECUTE Fichar_jugador(1008 ,3, 6000000, 1000000000); 
---Fichado
+EXECUTE Fichar_jugador(1008 ,2, 6000000, 1000000000); 
+--Fichado (actualizamos su historial, sueldo y equipo, y se le resta el precio de traspaso al equipo que lo ficha)
 EXECUTE Fichar_jugador(1008 ,3, 6000000, 100000); 
---Error: este jugador ya ha sido fichado - historial cerrado
-EXECUTE Fichar_jugador(1008 ,1, 6000000, 100000); 
 
 
 
