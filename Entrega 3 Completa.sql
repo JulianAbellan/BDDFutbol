@@ -199,12 +199,24 @@ END Info_Jugador;
 END;
 /
 
-
-
 CREATE OR REPLACE TYPE Arbitro_objtyp UNDER Persona_objtyp(
-    RolPrincipal VARCHAR2(35)
+    RolPrincipal VARCHAR2(35),
+    ORDER MEMBER FUNCTION CompararRolPrincipal(p_arbitro in Arbitra_objtyp) RETURN NUMBER
 );
 /
+
+CREATE OR REPLACE TYPE BODY Arbitra_objtyp AS
+ORDER MEMBER FUNCTION CompararRolPrincipal(p_arbitro in Arbitra_objtyp)
+    RETURN NUMBER IS
+    BEGIN
+        IF p_arbitro.RolPrincipal < self.RolPrincipal THEN RETURN 1;
+        ELSIF p_arbitro.RolPrincipal > self.RolPrincipal THEN RETURN -1;
+        ELSE RETURN 0;
+        END IF; 
+    END CompararRolPrincipal;
+END;
+/
+
 CREATE OR REPLACE TYPE Juega_objtyp AS OBJECT (
     MinutoEntrada NUMBER(2),
     MinutoSalida NUMBER(2),
@@ -234,7 +246,7 @@ CREATE TYPE nt_arbitra_typ AS TABLE OF Arbitra_objtyp;
 CREATE OR REPLACE TYPE Resultado_objtyp AS OBJECT (
     GolesLocal NUMBER(2),
     GolesVisitante NUMBER(2),
-    MVP NUMBER(5),
+    MVP REF Jugador_objtyp,
     MinutosPrimera NUMBER(2),
     MinutosSegunda NUMBER(2)
 );
@@ -414,7 +426,8 @@ ALTER TABLE nt_arbitra_tab ADD(
 ALTER TABLE Partido_objtab ADD(
     SCOPE FOR (Equipo_local) IS Equipo_objtab,
     SCOPE FOR (Equipo_visitante) IS Equipo_objtab,
-    SCOPE FOR (Estadio_partido) IS Estadio_objtab);
+    SCOPE FOR (Estadio_partido) IS Estadio_objtab,
+    SCOPE FOR (Resultado.MVP) IS Jugador_objtab);
 /  
 
 
@@ -2206,7 +2219,7 @@ BEGIN
         BEGIN
             SELECT j.Id_persona INTO id_jugador
             FROM Partido_objtab p, Jugador_objtab j
-            WHERE p.Resultado.MVP = j.Id_persona
+            WHERE p.Resultado.MVP = REF(j)
             AND  p.ID_partido = V_ID(i);
         EXCEPTION
             WHEN NO_DATA_FOUND THEN
@@ -2309,7 +2322,7 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
 /
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 10, 79, 46, 46))
+SET Resultado = (Resultado_objtyp(0, 10, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 46, 46))
 WHERE ID_Partido = 109;
 /
 
@@ -2356,7 +2369,7 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
 /
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 10, 79, 46, 46))
+SET Resultado = (Resultado_objtyp(0, 10, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 46, 46))
 WHERE ID_Partido = 110;
 /
 
@@ -2403,7 +2416,7 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
 /
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 10, 79, 46, 46))
+SET Resultado = (Resultado_objtyp(0, 10, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 46, 46))
 WHERE ID_Partido = 111;
 /
 
@@ -2452,7 +2465,7 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
 /
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 10, 79, 46, 46))
+SET Resultado = (Resultado_objtyp(0, 10, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 46, 46))
 WHERE ID_Partido = 112;
 /
 
@@ -2466,7 +2479,7 @@ CREATE OR REPLACE VIEW PichichiEnElBernabeu AS(
 SELECT j.Nombre, j.Apellido1 AS Apellido,
 SUM(Goles) AS NumeroGoles
 FROM Partido_objtab p,TABLE(p.jugadores) pj, Jugador_objtab j
-WHERE DEREF(pj.jugador).Id_persona = j.ID_Persona
+WHERE pj.Jugador = REF(j)
     AND (DEREF(p.Estadio_partido).Nombre = 'Santiago Bernabéu')
     AND (DEREF(pj.jugador).Pais = (SELECT REF(pa) FROM Pais_objtab pa WHERE pa.Nombre = 'Brasil'))
     AND (DEREF(pj.jugador).Equipo = (SELECT REF(eq) FROM Equipo_objtab eq WHERE eq.Nombre = 'Real Madrid CF'))
@@ -2874,23 +2887,23 @@ SET SERVEROUTPUT ON;
 ------RAUUUUUUL PELAAAAAO
 
 UPDATE Partido_objtab
-SET Resultado = Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=1), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=1), 64, 47, 50)
+SET Resultado = Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=1), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=1), (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 47, 50)
 WHERE ID_Partido = 1;/
 
 UPDATE Partido_objtab
-SET Resultado = Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=2), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=2), 107, 47, 48)
+SET Resultado = Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=2), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=2), (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 47, 48)
 WHERE ID_Partido = 2;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=3), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=3), 64, 45, 50))
+SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=3), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=3), (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 45, 50))
 WHERE ID_Partido = 3;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=4), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=4), 70, 47, 52))
+SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=4), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=4), (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 47, 52))
 WHERE ID_Partido = 4;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=5), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=5), 91, 49, 52))
+SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=5), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=5), (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 49, 52))
 WHERE ID_Partido = 5;/
 
 UPDATE Partido_objtab
@@ -2898,27 +2911,27 @@ SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_ob
 WHERE ID_Partido = 6;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(5, 0, 2000, 47, 50))
+SET Resultado = (Resultado_objtyp(5, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 47, 50))
 WHERE ID_Partido = 100;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(3, 1, 2001, 47, 48))
+SET Resultado = (Resultado_objtyp(3, 1, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 47, 48))
 WHERE ID_Partido = 101;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(17, 3, 2003, 47, 50))
+SET Resultado = (Resultado_objtyp(17, 3, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 47, 50))
 WHERE ID_Partido = 104;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 10, 107, 49, 46))
+SET Resultado = (Resultado_objtyp(0, 10, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 49, 46))
 WHERE ID_Partido = 106;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 20, 2006, 46, 47))
+SET Resultado = (Resultado_objtyp(0, 20, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 46, 47))
 WHERE ID_Partido = 107;/
 
 UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 10, 79, 46, 46))
+SET Resultado = (Resultado_objtyp(0, 10, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 64), 46, 46))
 WHERE ID_Partido = 108;/
 
 --_____________________________________________________________________________________________________
@@ -3021,7 +3034,7 @@ END;
 
 
 
--- Disparadores
+-- Disparadores JAVIER
 
 --Disparador que controle que un jugador puede ser insertado en un nuevo equipo
 --(controlando que no supere el tamaño máximo permitido de jugadores por equipo)
@@ -3320,7 +3333,7 @@ CREATE OR REPLACE VIEW vista1 AS (
 SELECT * FROM vista1; --FALTA AÑADIR VALORES EN GOLESTOTALES Y TARJETASAMARILLAS EN LA BBDD
 
 
--- Muestrame los jugadores españoles del Real Madrid que hayan jugado un partido entero sin recibir ninguna amonestación en la temporada actual y el número de ellos (nº de partidos)
+-- Muestrame los jugadores españoles del Real Madrid que hayan jugado un partido entero sin recibir ninguna amonestación en la temporada 2022-23 y el número de ellos (nº de partidos)
 
 CREATE OR REPLACE VIEW vista2 AS (
 SELECT j.nombre, j.apellido1 AS Apellido, (SELECT COUNT(*)
@@ -3331,7 +3344,7 @@ SELECT j.nombre, j.apellido1 AS Apellido, (SELECT COUNT(*)
     AND pp.tarjetaRoja = 0
     AND pp.tarjetaAmarilla1 = 0
     AND pp.tarjetaAmarilla2 = 0
-    AND p.fecha BETWEEN TO_DATE('13/08/2', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
+    AND p.fecha BETWEEN TO_DATE('13/08/22', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
     ) AS Partidos
 FROM Jugador_objtab j
 WHERE j.equipo.nombre LIKE 'Real Madrid CF'
@@ -3385,7 +3398,6 @@ v_antiguo_equipo Equipo_objtab.Nombre%TYPE;
 v_jugador Jugador_objtab.Nombre%TYPE;
 v_sueldo Jugador_objtab.Sueldo%TYPE := p_sueldo;
 v_historial Jugador_objtab.Historial%TYPE;
-v_temp_salida Historial_objtab.TemporadaSalida%TYPE;
 v_presupuesto Equipo_objtab.Presupuesto%TYPE;
 
 v_temporada Historial_objtab.TemporadaSalida%TYPE;
@@ -3408,40 +3420,35 @@ BEGIN
          RAISE_APPLICATION_ERROR(-20090, 'Precio por el transpaso no válido.');
     END IF;
     
-    SELECT Nombre, Presupuesto INTO v_equipo, v_presupuesto
-    FROM Equipo_objtab
-    WHERE ID_equipo = p_Equipo;
-    
-
-    IF v_equipo IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
-    END IF;
+    BEGIN
+        SELECT Nombre, Presupuesto INTO v_equipo, v_presupuesto
+        FROM Equipo_objtab
+        WHERE ID_equipo = p_Equipo;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
+    END;
+            
+    BEGIN        
+        SELECT j.Nombre, j.Equipo.Nombre, j.Historial INTO v_jugador, v_antiguo_equipo, v_historial
+        FROM Jugador_objtab j
+        WHERE j.ID_persona = p_jugador;
         
-    IF v_presupuesto < p_precio THEN
-        RAISE_APPLICATION_ERROR(-20080, 'El ' || v_equipo || ' no tiene suficiente presupuesto.');
-    END IF;
-    
-    SELECT j.Nombre, j.Equipo.Nombre, j.Historial, j.Historial.TemporadaSalida INTO v_jugador, v_antiguo_equipo, v_historial, v_temp_salida
-    FROM Jugador_objtab j
-    WHERE j.ID_persona = p_jugador;
-    
-    
-    IF v_jugador IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20040, 'El jugador introducido no existe.');
-    END IF;
-    
-    IF v_historial IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20050, 'El jugador no dispone de historial.');
-    END IF;
-    
-    IF v_temp_salida IS NOT NULL THEN
-        RAISE_APPLICATION_ERROR(-20060, 'Este jugador no puede ser fichado.');
-    END IF; --Porque tiene el historial cerrado.
-    
-    
-    IF v_antiguo_equipo = v_equipo THEN
-        RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
-    END IF;
+        IF v_historial IS NULL THEN
+            RAISE_APPLICATION_ERROR(-20050, 'El jugador no dispone de historial.');
+        END IF;
+        
+        IF v_antiguo_equipo = v_equipo THEN
+            RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
+        END IF;
+        
+        IF v_presupuesto < p_precio THEN
+            RAISE_APPLICATION_ERROR(-20080, 'El ' || v_equipo || ' no tiene suficiente presupuesto.');
+        END IF;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20040, 'El jugador introducido no existe.');
+    END;
     
     --Calculamos la temporada en la que estamos
     SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
@@ -3452,7 +3459,7 @@ BEGIN
         v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
     END IF;
 
-    --Actualizamos su historial con el antiguo club
+    --Cerramos su historial actual
     UPDATE Historial_objtab
     SET TemporadaSalida = v_temporada
     WHERE Id_historial = (
@@ -3469,28 +3476,22 @@ BEGIN
         (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = v_equipo),
         v_temporada);
     
-   
-    --Añado el nuevo jugador
-    INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales, Equipo, Historial)
-    VALUES (
-    (SELECT COALESCE(MAX(TO_NUMBER(id_persona)), 0) + 1 FROM jugador_objtab),
-    (SELECT j.Nombre FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Apellido1 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Apellido2 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Edad FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Pais FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Dorsal FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Posicion FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    v_sueldo,
-    (SELECT j.TarjetasRojas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.TarjetasAmarillas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.PartidosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.MinutosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.GolesTotales FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.ID_equipo = p_equipo),
-    (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
-    );
+    --Actualizamos su historial
+    UPDATE Jugador_objtab j
+    SET Historial = (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
+    WHERE j.Id_persona = p_jugador;
     
+    --Actualizamos su equipo
+    UPDATE Jugador_objtab j
+    SET Equipo = (SELECT REF(e) FROM equipo_objtab e WHERE e.ID_equipo = p_equipo)
+    WHERE j.Id_persona = p_jugador;
+    
+    --Actualizamos su sueldo
+    UPDATE Jugador_objtab j
+    SET Sueldo = p_sueldo
+    WHERE j.id_persona = p_jugador;
+    
+    -- Se le quita al presupuesto del equipo el precio del fichaje
     UPDATE Equipo_objtab
     SET Presupuesto = Presupuesto - p_precio
     WHERE ID_equipo = p_equipo;
@@ -3508,7 +3509,23 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     VALUES(1008, 'Alvaro', 'Grists', '', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );
+
+INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
+VALUES (1, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), '2020-21');
 /
+UPDATE Jugador_objtab j
+SET Historial = (SELECT REF(h) from historial_objtab h where id_historial = 1)
+WHERE j.id_persona = 1008;
+
+select * from jugador_objtab where id_persona = 1015
+
+--Error: tienes que introducir el id del jugador
+EXECUTE Fichar_Jugador(null, 3, 6000000, 100000);
+--Error: tienes que introducir el id del equipo
+EXECUTE Fichar_Jugador(1008, null, 6000000, 100000);
+--Error: precio de transpaso no válido (o null)
+EXECUTE Fichar_Jugador(1008, 2, 6000000, -100);
+EXECUTE Fichar_Jugador(1008, 2, 6000000, null);
 --Error: no existe el jugador
 EXECUTE Fichar_Jugador(1015, 3, 6000000, 100000); 
 --Error: no existe el equipo
@@ -3516,11 +3533,9 @@ EXECUTE Fichar_Jugador(1008, 100, 6000000, 100000);
 --Error por mismo equipo
 EXECUTE Fichar_Jugador(1008, 1, 6000000, 100000); 
 --Error por no tener presupuesto
-EXECUTE Fichar_jugador(1008 ,3, 6000000, 1000000000); 
---Fichado
+EXECUTE Fichar_jugador(1008 ,2, 6000000, 1000000000); 
+--Fichado (actualizamos su historial, sueldo y equipo, y se le resta el precio de traspaso al equipo que lo ficha)
 EXECUTE Fichar_jugador(1008 ,3, 6000000, 100000); 
---Error: este jugador ya ha sido fichado - historial cerrado
-EXECUTE Fichar_jugador(1008 ,1, 6000000, 100000); 
 
 
 
@@ -3554,13 +3569,14 @@ IS
 BEGIN   
 
     --verifico si la liga existe en la tabla
-    SELECT ID_liga INTO v_liga
-    FROM LigaFutbol_objtab
-    WHERE ID_liga = p_liga;
-
-    IF SQL%NOTFOUND THEN
-        RAISE_APPLICATION_ERROR(-20010, '');
-    END IF;
+    BEGIN
+        SELECT ID_liga INTO v_liga
+        FROM LigaFutbol_objtab
+        WHERE ID_liga = p_liga;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20010, 'La liga introducida no existe.');
+    END;
     
     DBMS_OUTPUT.PUT_LINE(' ');
     FOR r_equipo IN c_equipos_cursor LOOP
@@ -3597,19 +3613,253 @@ BEGIN
         END IF;
         
     END LOOP;
-    COMMIT;
     
     EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        DBMS_OUTPUT.PUT_LINE('La liga introducida no existe.');
     WHEN OTHERS THEN
         DBMS_OUTPUT.PUT_LINE('SQLCODE: ' || SQLCODE);
         DBMS_OUTPUT.PUT_LINE('SQLERRM: ' || SQLERRM);
-        ROLLBACK;
-        RAISE;
+
 END;
 /
 
---Actualiza los estadios de laliga santander (Real madrid --> No lo actualiza porque no tiene asociado el club)
+--Actualiza los estadios (y presupuestos de sus clubes) de laliga santander (Real madrid --> No lo actualiza porque no tiene asociado el club)
 EXECUTE actualizar_aforo_y_presupuesto(1);
+--Volvemos a actualizar los estadios de la liga santander para ver que los datos cambian correctamente
+EXECUTE actualizar_aforo_y_presupuesto(1);
+--Igual para la premier league
+EXECUTE actualizar_aforo_y_presupuesto(2);
+--Vuelvo a ejecutar el procedimiento para la premier league
+EXECUTE actualizar_aforo_y_presupuesto(2);
+--Error: Liga introducida no existe (ya sea porque se introduce null o porque el id no está registrado).
+EXECUTE actualizar_aforo_y_presupuesto(3);
+EXECUTE actualizar_aforo_y_presupuesto(null);
 
+
+
+
+
+DROP VIEW consultaXpath1;
+DROP VIEW consultaXpath2;
+DROP VIEW consultaXpath3;
+DROP VIEW consultaXquery;
+
+
+----------------------------------------------------------------
+--    PROCEDIMIENTO CREAR TABLA  CAMISETAS.XML MANUEL         
+----------------------------------------------------------------
+
+begin
+ DBMS_XMLSCHEMA.REGISTERSCHEMA(SCHEMAURL=>'camisetas.xsd', 
+SCHEMADOC=>'<?xml version="1.0"
+ encoding="utf-8"?>
+    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+        <xs:element name="camisetas">
+            <xs:complexType>
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" name="camiseta">
+                        <xs:complexType>
+                            <xs:sequence>
+                                <xs:element name="equipo" type="xs:string" />
+                                <xs:element name="temporada" type="xs:string" />
+                                <xs:element name="jugadortopventas" type="xs:string" />
+                                <xs:element name="precio" type="xs:decimal" />
+                                <xs:element name="dorsal" type="xs:integer" />
+                                <xs:element name="mangalarga" type="xs:boolean" />
+                                <xs:element name="stock" default="1">
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:unsignedByte">
+                                            <xs:minInclusive value="0"/>
+                                            <xs:maxInclusive value="1500"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="numeroequipacion">
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:unsignedByte">
+                                            <xs:minInclusive value="1"/>
+                                            <xs:maxInclusive value="3"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="marca" type="xs:string"/>
+                                <xs:element name="color">
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:string">
+                                            <xs:enumeration value="Negro"/>
+                                            <xs:enumeration value="Blanco"/>
+                                            <xs:enumeration value="Azul"/>
+                                            <xs:enumeration value="Naranja"/>
+                                            <xs:enumeration value="Amarillo"/>
+                                            <xs:enumeration value="Rosa"/>
+                                            <xs:enumeration value="Verde"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="talla">
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:string">
+                                            <xs:enumeration value="XS"/>
+                                            <xs:enumeration value="S"/>
+                                            <xs:enumeration value="M"/>
+                                            <xs:enumeration value="L"/>
+                                            <xs:enumeration value="XL"/>
+                                            <xs:enumeration value="XXL"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                            </xs:sequence>
+                            <xs:attribute name="idcamiseta" type="xs:integer" use="required"/>
+                        </xs:complexType>
+                    </xs:element>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:element>
+    </xs:schema>', LOCAL=>true, GENTYPES=>false, GENBEAN=>false,
+GENTABLES=>false,
+ FORCE=>false, OPTIONS=>DBMS_XMLSCHEMA.REGISTER_BINARYXML,
+OWNER=>USER);
+commit;
+end;
+/
+
+DROP TABLE COMPRA_CAMISETA;
+/
+
+CREATE TABLE COMPRA_CAMISETA(id number, camiseta xmltype)
+XMLTYPE COLUMN camiseta
+STORE AS BINARY XML
+XMLSCHEMA "http://xmlns.oracle.com/xdb/schemas/DBDD_09/camisetas.xsd"
+ELEMENT "camisetas";
+/
+--------------------------------------------
+--INSERTS AND UPDATES MANUEL
+--------------------------------------------
+
+-- INSERT EN LA TABLA COMPRA_CAMISETA
+
+INSERT INTO COMPRA_CAMISETA 
+VALUES(1, '<?xml version="1.0"?>
+        <camisetas>
+    <camiseta idcamiseta="1">
+        <equipo>Real Madrid</equipo>
+        <temporada>2022-2023</temporada>
+        <jugadortopventas>Benzema</jugadortopventas>
+        <precio>60</precio>
+        <dorsal>9</dorsal>
+        <mangalarga>true</mangalarga>
+        <stock>100</stock>
+        <numeroequipacion>1</numeroequipacion>
+        <marca>Adidas</marca>
+        <color>Blanco</color>
+        <talla>L</talla>
+    </camiseta>
+    <camiseta idcamiseta="2">
+        <equipo>FC Barcelona</equipo>
+        <temporada>2023</temporada>
+        <jugadortopventas>Messi</jugadortopventas>
+        <precio>70</precio>
+        <dorsal>10</dorsal>
+        <mangalarga>false</mangalarga>
+        <stock>250</stock>
+        <numeroequipacion>2</numeroequipacion>
+        <marca>Nike</marca>
+        <color>Amarillo</color>
+        <talla>M</talla>
+    </camiseta>
+        </camisetas>');
+/
+
+-- CREACION DE UN ÍNDICE
+
+CREATE INDEX idx_compracamiseta ON compra_camiseta(camiseta) INDEXTYPE IS
+XDB.XMLINDEX PARAMETERS
+('PATHS (INCLUDE (/camisetas/camiseta/precio))');
+/
+
+-- UPDATE CON APPENDCHILDXML
+
+UPDATE COMPRA_CAMISETA 
+SET camiseta=APPENDCHILDXML(camiseta,'/camisetas','
+    <camiseta idcamiseta="3">
+        <equipo>CP Villarrobledo</equipo>
+        <temporada>2022</temporada>
+        <jugadortopventas>Joel Enrique</jugadortopventas>
+        <precio>60</precio>
+        <dorsal>10</dorsal>
+        <mangalarga>false</mangalarga>
+        <stock>20</stock>
+        <numeroequipacion>2</numeroequipacion>
+        <marca>Abidas</marca>
+        <color>Azul</color>
+        <talla>XL</talla>    
+    </camiseta>')
+WHERE id=1;
+/
+-- UPDATE CON UPDATEXML
+
+UPDATE COMPRA_CAMISETA
+SET camiseta=UPDATEXML(camiseta,'/camisetas[1]/camiseta[3]/precio/text()',20)
+WHERE id=1;
+/
+
+-- DELETE EN COMPRA_CAMISETA
+
+UPDATE COMPRA_CAMISETA
+SET camiseta=DELETEXML(camiseta,'/camisetas[1]/camiseta[2]');
+
+/
+----------------------------------
+-- CONSULTAS EN XPATH MANUEL
+---------------------------------
+
+-- CONSULTAR PRECIO DE LAS CAMISETAS DE LA COMPRA DE CAMISETAS CON ID=1 EN LA TABLA COMPRA_CAMISETA
+
+CREATE VIEW consultaXpath1 AS
+SELECT EXTRACT(camiseta, '/camisetas/camiseta[1]/precio/text()').getStringVal() AS Precio 
+FROM compra_camiseta c where id = 1;
+/
+SELECT * FROM consultaXpath1;
+
+-- CONSULTAR CAMISETAS DE COLOR AZUL Y CON PRECIO MENOR A 50 Y MOSTRARLO COMO CADENA DE CARACTERES
+
+CREATE OR REPLACE VIEW consultaXpath2 AS 
+SELECT id, c.camiseta.getStringVal() AS Camiseta
+FROM COMPRA_CAMISETA c
+WHERE xmlexists('/camisetas/camiseta[precio<50 or color="Azul"]/equipo'
+    passing camiseta);
+/
+
+SELECT * FROM consultaXpath2;
+/
+
+CREATE OR REPLACE VIEW consultaXpath3 AS 
+SELECT ID, c.camiseta.extract('/camisetas/camiseta[@idcamiseta!=2]/equipo').getStringVal() AS EQUIPO
+FROM COMPRA_CAMISETA c;
+/
+
+SELECT * FROM consultaXpath3;
+/
+----------------------------------
+-- CONSULTAS EN XQUERY MANUEL
+---------------------------------
+
+-- CONSULTAR CAMISETAS EN COMPRA_CAMISETA Y SI SU PRECIO ES MAYOR IGUAL QUE 20 Y MENOR QUE 50 INCREMENTAR SU PRECIO UN 25%
+CREATE OR REPLACE VIEW consultaXquery AS 
+    SELECT ID,XMLQUERY('for $i in /camisetas/camiseta
+                let $precio := $i/precio/text()
+                where $precio>0
+                    order by $precio
+                return <precio valor="{$precio}">
+                    {    
+                    if ($precio >=20 and $precio<50) then
+                        $precio*1.25
+                    else
+                        $precio
+                    }
+                    </precio>'
+                    PASSING camiseta RETURNING CONTENT).getStringVal() "consultaXquery"
+                FROM COMPRA_CAMISETA c;
+/
+SELECT * FROM consultaXquery;
+                
+                
