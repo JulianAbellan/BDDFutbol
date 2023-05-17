@@ -426,7 +426,7 @@ ALTER TABLE nt_arbitra_tab ADD(
 ALTER TABLE Partido_objtab ADD(
     SCOPE FOR (Equipo_local) IS Equipo_objtab,
     SCOPE FOR (Equipo_visitante) IS Equipo_objtab,
-    SCOPE FOR (Estadio_partido) IS Estadio_objtab
+    SCOPE FOR (Estadio_partido) IS Estadio_objtab,
     SCOPE FOR (Resultado.MVP) IS Jugador_objtab);
 /  
 
