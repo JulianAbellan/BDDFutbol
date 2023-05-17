@@ -3026,7 +3026,7 @@ pantalones=deletexml(pantalones,'/pantalones/pantalon[@cod="567"]')
 WHERE id=1;
 
 
---CONSULTAS
+--CONSULTAS XPATH
 
 SELECT id, stock, p.pantalones.getStringVal() FROM Inventario p;
 
@@ -3035,10 +3035,9 @@ id=1;
 
 
 
---XPATH
-
-
-select id, xmlquery('for $i in /pantalones/pantalon
+-- xquery
+CREATE OR REPLACE VIEW consultaXqueryPantalon AS 
+select id,xmlquery('for $i in /pantalones/pantalon
 let $talla := $i/talla/text() 
 where $talla>0
 order by $talla
@@ -3046,11 +3045,15 @@ return <talla valor="{$talla}">
  { 
  if ($talla >= 16) then 
  $talla
+ else
+ $talla
  }
 </talla>' 
-PASSING pantalon RETURNING CONTENT).getStringVal() "tallaspantalones"
-                FROM Inventario i;
+PASSING pantalones RETURNING CONTENT) "tallaspantalones"
+                FROM Inventario p;
 
+
+SELECT * FROM consultaXqueryPantalon;
 
 -- Disparadores
 
