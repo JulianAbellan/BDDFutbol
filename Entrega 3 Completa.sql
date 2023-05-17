@@ -3320,7 +3320,7 @@ CREATE OR REPLACE VIEW vista1 AS (
 SELECT * FROM vista1; --FALTA AÑADIR VALORES EN GOLESTOTALES Y TARJETASAMARILLAS EN LA BBDD
 
 
--- Muestrame los jugadores españoles del Real Madrid que hayan jugado un partido entero sin recibir ninguna amonestación en la temporada actual y el número de ellos (nº de partidos)
+-- Muestrame los jugadores españoles del Real Madrid que hayan jugado un partido entero sin recibir ninguna amonestación en la temporada 2022-23 y el número de ellos (nº de partidos)
 
 CREATE OR REPLACE VIEW vista2 AS (
 SELECT j.nombre, j.apellido1 AS Apellido, (SELECT COUNT(*)
@@ -3331,7 +3331,7 @@ SELECT j.nombre, j.apellido1 AS Apellido, (SELECT COUNT(*)
     AND pp.tarjetaRoja = 0
     AND pp.tarjetaAmarilla1 = 0
     AND pp.tarjetaAmarilla2 = 0
-    AND p.fecha BETWEEN TO_DATE('13/08/2', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
+    AND p.fecha BETWEEN TO_DATE('13/08/22', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
     ) AS Partidos
 FROM Jugador_objtab j
 WHERE j.equipo.nombre LIKE 'Real Madrid CF'
