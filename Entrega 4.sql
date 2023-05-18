@@ -2893,9 +2893,8 @@ END;
 -- execute MinutoSalidaJugador
 */
 
-
--- Dado el nombre de un equipo, muestra la media de edad de sus jugadores,
--- la media de su sueldo 
+-- Dado el nombre de un equipo, muestra el promedio de edad y sueldo
+-- además de el jugador con el mayor sueldo y con el menor sueldo
 
 SET SERVEROUTPUT ON;
 
@@ -2903,16 +2902,14 @@ CREATE OR REPLACE PROCEDURE JugadorPromedio (n_equipo in Equipo_objtab.Nombre%ty
     sueldopromedio Jugador_objtab.Sueldo%TYPE;
     edadpromedio Jugador_objtab.Edad%TYPE;
 
-    sueldomin Jugador_objtab.Sueldo%TYPE;
-    sueldomax Jugador_objtab.Sueldo%TYPE;
     sueldojugador Jugador_objtab.Sueldo%TYPE;
     edadjugador Jugador_objtab.Edad%TYPE;
     nombrejugador Jugador_objtab.Nombre%TYPE;
     apellidojugador Jugador_objtab.Apellido1%TYPE;
 
 BEGIN
-         SELECT AVG(j.Sueldo), AVG(j.edad), MAX(j.Sueldo), MIN(j.Sueldo)
-         INTO sueldopromedio,  edadpromedio, sueldomax, sueldomin
+         SELECT AVG(j.Sueldo), AVG(j.edad)
+         INTO sueldopromedio,  edadpromedio
         FROM Jugador_objtab j
         WHERE j.Equipo =  (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like n_equipo);
         
@@ -2924,7 +2921,8 @@ BEGIN
          INTO nombrejugador, apellidojugador, sueldojugador,  edadjugador
         FROM Jugador_objtab j
         WHERE j.Equipo =  (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like n_equipo)
-                AND j.sueldo = sueldomax;
+         ORDER BY j.sueldo DESC
+                FETCH FIRST 1 ROW ONLY;
 
         DBMS_OUTPUT.PUT_LINE('El jugador ' || nombrejugador || ' ' || apellidojugador ||
         ' con edad: ' || edadjugador || 
@@ -2934,7 +2932,8 @@ BEGIN
          INTO nombrejugador, apellidojugador, sueldojugador,  edadjugador
         FROM Jugador_objtab j
         WHERE j.Equipo =  (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like n_equipo)
-                AND j.sueldo = sueldomin;
+         ORDER BY j.sueldo ASC
+                FETCH FIRST 1 ROW ONLY;
 
         DBMS_OUTPUT.PUT_LINE('El jugador ' || nombrejugador || ' ' || apellidojugador ||
         ' con edad: ' || edadjugador || 
@@ -2942,9 +2941,6 @@ BEGIN
 END;
 
 execute JugadorPromedio ('Real Madrid CF');
-
-
-
 
 
 -------XML RAÚL
