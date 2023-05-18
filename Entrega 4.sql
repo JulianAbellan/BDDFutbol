@@ -3178,42 +3178,152 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
 --NO SE PUEDEN JUGAR VARIOS PARTIDOS EN EL MISMO ESTADIO EN LA MISMA FECHA Y HORA.
 
 CREATE OR REPLACE TRIGGER tr_comprobar_estadio_disponible
-BEFORE INSERT ON Partido_objtab
-FOR EACH ROW
-DECLARE
+FOR INSERT OR UPDATE ON Partido_objtab
+COMPOUND TRIGGER
+
+    TYPE T_Estadio IS TABLE OF Partido_objtab.Estadio_partido%TYPE INDEX BY BINARY_INTEGER;
+    VT_Estadio T_Estadio;
+    TYPE T_Fecha IS TABLE OF Partido_objtab.Fecha%TYPE INDEX BY BINARY_INTEGER;
+    VT_Fecha T_Fecha;
+    TYPE T_Hora IS TABLE OF Partido_objtab.Hora%TYPE INDEX BY BINARY_INTEGER;
+    VT_Hora T_Hora;
+    TYPE T_Id IS TABLE OF Partido_objtab.Id_partido%TYPE INDEX BY BINARY_INTEGER;
+    VT_Id T_Id;
+    
+    IND BINARY_INTEGER := 0;
+    
     v_estadio_ocupado NUMBER;
     v_fecha_partido Partido_objtab.Fecha%TYPE;
     v_old_fecha Partido_objtab.Fecha%TYPE;
+    
+BEFORE EACH ROW IS
 BEGIN
+    IND := IND + 1;
+    VT_Estadio(IND) := :NEW.Estadio_partido;
+    VT_Fecha(IND) := :NEW.Fecha;
+    VT_Hora(IND) := :New.Hora;
+    VT_Id(IND) := :New.Id_partido;
+END BEFORE EACH ROW;
     
-    v_old_fecha := :NEW.Fecha;
-    --Compruebo si hay partidos en los que coinciden las fechas y los estadios.
-    v_fecha_partido := :NEW.Fecha;
-    
-    SELECT COUNT(*) INTO v_estadio_ocupado
-    FROM Partido_objtab p
-    WHERE p.Estadio_partido = :NEW.Estadio_partido
-    AND p.Fecha LIKE v_fecha_partido;
-    
-    --Si hay partidos en los que coinciden las fechas y estadios, cambio la fecha a una disponible
-    IF v_estadio_ocupado > 0 THEN 
-        LOOP
-            v_fecha_partido := v_fecha_partido + 1;
-            
-            SELECT COUNT(*) INTO v_estadio_ocupado
-            FROM Partido_objtab p
-            WHERE p.Estadio_partido = :NEW.Estadio_partido
-            AND p.Fecha LIKE v_fecha_partido;
-            
-            EXIT WHEN v_estadio_ocupado = 0;
-        END LOOP;
+AFTER STATEMENT IS
+BEGIN
+
+    FOR i IN 1..IND LOOP
         
-        :NEW.Fecha := v_fecha_partido;
+        v_old_fecha := VT_Fecha(i);
+        v_fecha_partido := VT_Fecha(i);
+    
+        -- Cuento cuantos partidos coinciden en estadio y día
+        SELECT COUNT(*) INTO v_estadio_ocupado
+        FROM Partido_objtab p
+        WHERE p.Estadio_partido = VT_Estadio(i)
+        AND p.Fecha = VT_Fecha(i);
         
-        DBMS_OUTPUT.PUT_LINE(v_old_fecha || ' - ' || :NEW.Hora || 'h --> ' || :NEW.Fecha || ' - ' || :NEW.Hora || 'h.');
-    END IF;
+        -- Si hay alguno --> modifico la fecha a una válida, si no, no hago nada
+        IF v_estadio_ocupado > 1 THEN
+            LOOP
+                v_fecha_partido := v_fecha_partido + 1;
+                
+                -- Compruebo cuantos partidos coinciden en estadio y día pero ahora habiendo aumentado el día al siguiente.
+                -- Cuando haya cero, en v_fecha_partido voy a tener el día más próximo válido que voy a ponerle al partido.
+                SELECT COUNT(*) INTO v_estadio_ocupado
+                FROM Partido_objtab p
+                WHERE p.Estadio_partido = VT_Estadio(i)
+                AND p.Fecha = v_fecha_partido;
+                
+                EXIT WHEN v_estadio_ocupado = 0;
+            END LOOP;
+            
+            VT_Fecha(i) := v_fecha_partido;
+            
+            UPDATE Partido_objtab p
+            SET p.Fecha = VT_Fecha(i) 
+            WHERE p.Id_partido = VT_Id(i);
+            
+            DBMS_OUTPUT.PUT_LINE(v_old_fecha || ' - ' || VT_Hora(i) || 'h --> ' || VT_Fecha(i) || ' - ' || VT_Hora(i) || 'h.');
+        END IF;
+    END LOOP;
+END AFTER STATEMENT;
 END;
 /
+
+INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
+    VALUES (200, '25/06/23', 16,
+            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Real Madrid CF'),
+            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'FC Barcelona'),
+            (SELECT REF (e) FROM Estadio_objtab e WHERE e.Nombre = 'Santiago Bernabéu'),
+            nt_juega_typ(
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Courtois')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Carvajal')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Kroos')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Modric')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Vallejo')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Odriozola')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Fernández')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Camavinga')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Tchouameni')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Goes')),
+                        Juega_objtyp(0, 60, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'de Oliveira')),
+                        Juega_objtyp(60, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Díaz')),
+                                               
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'ter Stegen')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Araujo')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alonso')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'García')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alba')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Busquets')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'González')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Roberto')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 2, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dembélé')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 3, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Lewandowski')),
+                        Juega_objtyp(0, 60, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Torres')),
+                        Juega_objtyp(60, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Fati'))
+            ),
+            nt_arbitra_typ(
+                        Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Lahoz')),
+                        Arbitra_objtyp('Asistente adicional', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Gil')),
+                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
+                        Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
+            ));/
+
+ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
+    VALUES (201, '25/06/23', 16,
+            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'Real Madrid CF'),
+            (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'FC Barcelona'),
+            (SELECT REF (e) FROM Estadio_objtab e WHERE e.Nombre = 'Santiago Bernabéu'),
+            nt_juega_typ(
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Courtois')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Carvajal')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Kroos')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Modric')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Vallejo')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Odriozola')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Fernández')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Camavinga')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Tchouameni')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Goes')),
+                        Juega_objtyp(0, 60, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'de Oliveira')),
+                        Juega_objtyp(60, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Díaz')),
+                                               
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'ter Stegen')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Araujo')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alonso')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'García')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Alba')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Busquets')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'González')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Roberto')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 2, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Dembélé')),
+                        Juega_objtyp(0, null, 0, 0, 0, null, null, null, 3, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Lewandowski')),
+                        Juega_objtyp(0, 60, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.Apellido1 = 'Torres')),
+                        Juega_objtyp(60, null, 0, 0, 0, null, null, null, 0, (SELECT REF(j) FROM Jugador_objtab j  WHERE j.Apellido1 = 'Fati'))
+            ),
+            nt_arbitra_typ(
+                        Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Lahoz')),
+                        Arbitra_objtyp('Asistente adicional', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Gil')),
+                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Hernández')),
+                        Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Apellido1 = 'Calvo'))
+            ));/           
 
 
 
@@ -3248,7 +3358,7 @@ CREATE OR REPLACE VIEW vista1 AS (
 SELECT * FROM vista1; --FALTA AÑADIR VALORES EN GOLESTOTALES Y TARJETASAMARILLAS EN LA BBDD
 
 
--- Muestrame los jugadores españoles del Real Madrid que hayan jugado un partido entero sin recibir ninguna amonestación en la temporada actual y el número de ellos (nº de partidos)
+-- Muestrame los jugadores españoles del Real Madrid que hayan jugado un partido entero sin recibir ninguna amonestación en la temporada 2022-23 y el número de ellos (nº de partidos)
 
 CREATE OR REPLACE VIEW vista2 AS (
 SELECT j.nombre, j.apellido1 AS Apellido, (SELECT COUNT(*)
@@ -3259,7 +3369,7 @@ SELECT j.nombre, j.apellido1 AS Apellido, (SELECT COUNT(*)
     AND pp.tarjetaRoja = 0
     AND pp.tarjetaAmarilla1 = 0
     AND pp.tarjetaAmarilla2 = 0
-    AND p.fecha BETWEEN TO_DATE('13/08/2', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
+    AND p.fecha BETWEEN TO_DATE('13/08/22', 'DD/MM/YY') AND TO_DATE('04/06/23', 'DD/MM/YY')
     ) AS Partidos
 FROM Jugador_objtab j
 WHERE j.equipo.nombre LIKE 'Real Madrid CF'
@@ -3313,7 +3423,6 @@ v_antiguo_equipo Equipo_objtab.Nombre%TYPE;
 v_jugador Jugador_objtab.Nombre%TYPE;
 v_sueldo Jugador_objtab.Sueldo%TYPE := p_sueldo;
 v_historial Jugador_objtab.Historial%TYPE;
-v_temp_salida Historial_objtab.TemporadaSalida%TYPE;
 v_presupuesto Equipo_objtab.Presupuesto%TYPE;
 
 v_temporada Historial_objtab.TemporadaSalida%TYPE;
@@ -3336,40 +3445,35 @@ BEGIN
          RAISE_APPLICATION_ERROR(-20090, 'Precio por el transpaso no válido.');
     END IF;
     
-    SELECT Nombre, Presupuesto INTO v_equipo, v_presupuesto
-    FROM Equipo_objtab
-    WHERE ID_equipo = p_Equipo;
-    
-
-    IF v_equipo IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
-    END IF;
+    BEGIN
+        SELECT Nombre, Presupuesto INTO v_equipo, v_presupuesto
+        FROM Equipo_objtab
+        WHERE ID_equipo = p_Equipo;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20030, 'El equipo introducido no existe.');
+    END;
+            
+    BEGIN        
+        SELECT j.Nombre, j.Equipo.Nombre, j.Historial INTO v_jugador, v_antiguo_equipo, v_historial
+        FROM Jugador_objtab j
+        WHERE j.ID_persona = p_jugador;
         
-    IF v_presupuesto < p_precio THEN
-        RAISE_APPLICATION_ERROR(-20080, 'El ' || v_equipo || ' no tiene suficiente presupuesto.');
-    END IF;
-    
-    SELECT j.Nombre, j.Equipo.Nombre, j.Historial, j.Historial.TemporadaSalida INTO v_jugador, v_antiguo_equipo, v_historial, v_temp_salida
-    FROM Jugador_objtab j
-    WHERE j.ID_persona = p_jugador;
-    
-    
-    IF v_jugador IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20040, 'El jugador introducido no existe.');
-    END IF;
-    
-    IF v_historial IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20050, 'El jugador no dispone de historial.');
-    END IF;
-    
-    IF v_temp_salida IS NOT NULL THEN
-        RAISE_APPLICATION_ERROR(-20060, 'Este jugador no puede ser fichado.');
-    END IF; --Porque tiene el historial cerrado.
-    
-    
-    IF v_antiguo_equipo = v_equipo THEN
-        RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
-    END IF;
+        IF v_historial IS NULL THEN
+            RAISE_APPLICATION_ERROR(-20050, 'El jugador no dispone de historial.');
+        END IF;
+        
+        IF v_antiguo_equipo = v_equipo THEN
+            RAISE_APPLICATION_ERROR(-20070, 'No puedes transferir un jugador al mismo equipo al que pertenece');
+        END IF;
+        
+        IF v_presupuesto < p_precio THEN
+            RAISE_APPLICATION_ERROR(-20080, 'El ' || v_equipo || ' no tiene suficiente presupuesto.');
+        END IF;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20040, 'El jugador introducido no existe.');
+    END;
     
     --Calculamos la temporada en la que estamos
     SELECT EXTRACT(YEAR FROM SYSDATE), EXTRACT(MONTH FROM SYSDATE) INTO v_anio, v_mes FROM dual;
@@ -3380,7 +3484,7 @@ BEGIN
         v_temporada := SUBSTR(TO_CHAR(v_anio-1), 1, 4) || '-' || SUBSTR(TO_CHAR(v_anio), 3, 2);
     END IF;
 
-    --Actualizamos su historial con el antiguo club
+    --Cerramos su historial actual
     UPDATE Historial_objtab
     SET TemporadaSalida = v_temporada
     WHERE Id_historial = (
@@ -3397,28 +3501,22 @@ BEGIN
         (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = v_equipo),
         v_temporada);
     
-   
-    --Añado el nuevo jugador
-    INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales, Equipo, Historial)
-    VALUES (
-    (SELECT COALESCE(MAX(TO_NUMBER(id_persona)), 0) + 1 FROM jugador_objtab),
-    (SELECT j.Nombre FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Apellido1 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Apellido2 FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Edad FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Pais FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Dorsal FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.Posicion FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    v_sueldo,
-    (SELECT j.TarjetasRojas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.TarjetasAmarillas FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.PartidosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.MinutosJugados FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT j.GolesTotales FROM Jugador_objtab j WHERE j.ID_persona = p_jugador),
-    (SELECT REF(e) FROM equipo_objtab e WHERE e.ID_equipo = p_equipo),
-    (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
-    );
+    --Actualizamos su historial
+    UPDATE Jugador_objtab j
+    SET Historial = (SELECT REF(h) FROM Historial_objtab h WHERE h.Id_historial = (SELECT MAX(id_historial) FROM Historial_objtab))
+    WHERE j.Id_persona = p_jugador;
     
+    --Actualizamos su equipo
+    UPDATE Jugador_objtab j
+    SET Equipo = (SELECT REF(e) FROM equipo_objtab e WHERE e.ID_equipo = p_equipo)
+    WHERE j.Id_persona = p_jugador;
+    
+    --Actualizamos su sueldo
+    UPDATE Jugador_objtab j
+    SET Sueldo = p_sueldo
+    WHERE j.id_persona = p_jugador;
+    
+    -- Se le quita al presupuesto del equipo el precio del fichaje
     UPDATE Equipo_objtab
     SET Presupuesto = Presupuesto - p_precio
     WHERE ID_equipo = p_equipo;
@@ -3436,7 +3534,23 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     VALUES(1008, 'Alvaro', 'Grists', '', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );
+
+INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
+VALUES (18, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), '2020-21');
 /
+UPDATE Jugador_objtab j
+SET Historial = (SELECT REF(h) from historial_objtab h where id_historial = 18)
+WHERE j.id_persona = 1008;
+
+select * from jugador_objtab where id_persona = 1015
+
+--Error: tienes que introducir el id del jugador
+EXECUTE Fichar_Jugador(null, 3, 6000000, 100000);
+--Error: tienes que introducir el id del equipo
+EXECUTE Fichar_Jugador(1008, null, 6000000, 100000);
+--Error: precio de transpaso no válido (o null)
+EXECUTE Fichar_Jugador(1008, 2, 6000000, -100);
+EXECUTE Fichar_Jugador(1008, 2, 6000000, null);
 --Error: no existe el jugador
 EXECUTE Fichar_Jugador(1015, 3, 6000000, 100000); 
 --Error: no existe el equipo
@@ -3444,11 +3558,9 @@ EXECUTE Fichar_Jugador(1008, 100, 6000000, 100000);
 --Error por mismo equipo
 EXECUTE Fichar_Jugador(1008, 1, 6000000, 100000); 
 --Error por no tener presupuesto
-EXECUTE Fichar_jugador(1008 ,3, 6000000, 1000000000); 
---Fichado
+EXECUTE Fichar_jugador(1008 ,2, 6000000, 1000000000); 
+--Fichado (actualizamos su historial, sueldo y equipo, y se le resta el precio de traspaso al equipo que lo ficha)
 EXECUTE Fichar_jugador(1008 ,3, 6000000, 100000); 
---Error: este jugador ya ha sido fichado - historial cerrado
-EXECUTE Fichar_jugador(1008 ,1, 6000000, 100000); 
 
 
 
@@ -3482,13 +3594,14 @@ IS
 BEGIN   
 
     --verifico si la liga existe en la tabla
-    SELECT ID_liga INTO v_liga
-    FROM LigaFutbol_objtab
-    WHERE ID_liga = p_liga;
-
-    IF SQL%NOTFOUND THEN
-        RAISE_APPLICATION_ERROR(-20010, '');
-    END IF;
+    BEGIN
+        SELECT ID_liga INTO v_liga
+        FROM LigaFutbol_objtab
+        WHERE ID_liga = p_liga;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20010, 'La liga introducida no existe.');
+    END;
     
     DBMS_OUTPUT.PUT_LINE(' ');
     FOR r_equipo IN c_equipos_cursor LOOP
@@ -3525,21 +3638,26 @@ BEGIN
         END IF;
         
     END LOOP;
-    COMMIT;
     
     EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        DBMS_OUTPUT.PUT_LINE('La liga introducida no existe.');
     WHEN OTHERS THEN
         DBMS_OUTPUT.PUT_LINE('SQLCODE: ' || SQLCODE);
         DBMS_OUTPUT.PUT_LINE('SQLERRM: ' || SQLERRM);
-        ROLLBACK;
-        RAISE;
+
 END;
 /
 
---Actualiza los estadios de laliga santander (Real madrid --> No lo actualiza porque no tiene asociado el club)
+--Actualiza los estadios (y presupuestos de sus clubes) de laliga santander (Real madrid --> No lo actualiza porque no tiene asociado el club)
 EXECUTE actualizar_aforo_y_presupuesto(1);
+--Volvemos a actualizar los estadios de la liga santander para ver que los datos cambian correctamente
+EXECUTE actualizar_aforo_y_presupuesto(1);
+--Igual para la premier league
+EXECUTE actualizar_aforo_y_presupuesto(2);
+--Vuelvo a ejecutar el procedimiento para la premier league
+EXECUTE actualizar_aforo_y_presupuesto(2);
+--Error: Liga introducida no existe (ya sea porque se introduce null o porque el id no está registrado).
+EXECUTE actualizar_aforo_y_presupuesto(3);
+EXECUTE actualizar_aforo_y_presupuesto(null);
 
 
 
