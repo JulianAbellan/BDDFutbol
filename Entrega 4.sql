@@ -2859,6 +2859,7 @@ END;
 
 execute MinutoSalidaJugador;
 
+
 /*
 CREATE OR REPLACE PROCEDURE MinutoSalidaJugador IS
     SolucionJugador NUMBER(10);
@@ -2891,6 +2892,39 @@ END;
 /
 -- execute MinutoSalidaJugador
 */
+
+
+
+
+-- Dado el nombre de un equipo, muestra la media de edad de sus jugadores,
+-- la media de su sueldo y la mediana respectivamente
+
+SET SERVEROUTPUT ON;
+
+CREATE OR REPLACE PROCEDURE JugadorPromedio (n_equipo in Equipo_objtab.Nombre%type) IS 
+    
+    sueldopromedio Jugador_objtab.Sueldo%TYPE;
+    edadpromedio Jugador_objtab.Edad%TYPE;
+
+BEGIN
+    
+         SELECT AVG(j.Sueldo), AVG(j.edad) 
+         INTO sueldopromedio,  edadpromedio
+        FROM Jugador_objtab j
+        WHERE j.Equipo =  (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like n_equipo);
+
+
+        
+        DBMS_OUTPUT.PUT_LINE('El equipo ' || n_equipo || 
+        ' tiene una edad promedio: ' || edadpromedio || 
+        ' y un sueldo promedio: ' || sueldopromedio || ' €');
+END;
+
+
+execute JugadorPromedio ('Real Madrid CF');
+
+
+
 
 
 -------XML RAÚL
