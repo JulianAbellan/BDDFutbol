@@ -2908,6 +2908,11 @@ CREATE OR REPLACE PROCEDURE JugadorPromedio (n_equipo in Equipo_objtab.Nombre%ty
     apellidojugador Jugador_objtab.Apellido1%TYPE;
 
 BEGIN
+
+        IF n_equipo IS null THEN 
+        RAISE_APPLICATION_ERROR(-20789, 'El parámetro "equipo" no puede ser nulo');
+        END IF;
+
          SELECT AVG(j.Sueldo), AVG(j.edad)
          INTO sueldopromedio,  edadpromedio
         FROM Jugador_objtab j
