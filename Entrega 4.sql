@@ -2894,32 +2894,52 @@ END;
 */
 
 
-
-
 -- Dado el nombre de un equipo, muestra la media de edad de sus jugadores,
--- la media de su sueldo y la mediana respectivamente
+-- la media de su sueldo 
 
 SET SERVEROUTPUT ON;
 
 CREATE OR REPLACE PROCEDURE JugadorPromedio (n_equipo in Equipo_objtab.Nombre%type) IS 
-    
     sueldopromedio Jugador_objtab.Sueldo%TYPE;
     edadpromedio Jugador_objtab.Edad%TYPE;
 
+    sueldomin Jugador_objtab.Sueldo%TYPE;
+    sueldomax Jugador_objtab.Sueldo%TYPE;
+    sueldojugador Jugador_objtab.Sueldo%TYPE;
+    edadjugador Jugador_objtab.Edad%TYPE;
+    nombrejugador Jugador_objtab.Nombre%TYPE;
+    apellidojugador Jugador_objtab.Apellido1%TYPE;
+
 BEGIN
-    
-         SELECT AVG(j.Sueldo), AVG(j.edad) 
-         INTO sueldopromedio,  edadpromedio
+         SELECT AVG(j.Sueldo), AVG(j.edad), MAX(j.Sueldo), MIN(j.Sueldo)
+         INTO sueldopromedio,  edadpromedio, sueldomax, sueldomin
         FROM Jugador_objtab j
         WHERE j.Equipo =  (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like n_equipo);
-
-
         
         DBMS_OUTPUT.PUT_LINE('El equipo ' || n_equipo || 
         ' tiene una edad promedio: ' || edadpromedio || 
         ' y un sueldo promedio: ' || sueldopromedio || ' €');
-END;
 
+        SELECT j.nombre, j.Apellido1, j.sueldo, j.edad
+         INTO nombrejugador, apellidojugador, sueldojugador,  edadjugador
+        FROM Jugador_objtab j
+        WHERE j.Equipo =  (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like n_equipo)
+                AND j.sueldo = sueldomax;
+
+        DBMS_OUTPUT.PUT_LINE('El jugador ' || nombrejugador || ' ' || apellidojugador ||
+        ' con edad: ' || edadjugador || 
+        ' y con el mayor sueldo: ' || sueldojugador || ' €');
+
+        SELECT j.nombre, j.Apellido1, j.sueldo, j.edad
+         INTO nombrejugador, apellidojugador, sueldojugador,  edadjugador
+        FROM Jugador_objtab j
+        WHERE j.Equipo =  (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like n_equipo)
+                AND j.sueldo = sueldomin;
+
+        DBMS_OUTPUT.PUT_LINE('El jugador ' || nombrejugador || ' ' || apellidojugador ||
+        ' con edad: ' || edadjugador || 
+        ' y con el menor sueldo: ' || sueldojugador || ' €');        
+END;
 
 execute JugadorPromedio ('Real Madrid CF');
 
