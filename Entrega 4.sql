@@ -3219,7 +3219,7 @@ END AFTER STATEMENT;
 END;
 /
 
-
+/*
 --Pruebas: 
 -- Insertar jugador -> se crea su historial correctamente en el Atlético de Madrid
 INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
@@ -3327,6 +3327,7 @@ UPDATE Jugador_objtab
 SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Liverpool')
 WHERE id_persona = 91;/
 
+*/
 
 --TRIGGER 2
 
@@ -3404,6 +3405,8 @@ END AFTER STATEMENT;
 END;
 /
 
+/*
+--Pruebas
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
     VALUES (200, '28/06/23', 16,
             (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'FC Barcelona'),
@@ -3606,7 +3609,7 @@ UPDATE Partido_objtab
 SET Estadio_partido = (SELECT REF (e) FROM Estadio_objtab e WHERE e.Nombre = 'Santiago Bernabéu')
 WHERE Id_partido = 204;          
 
-
+*/
 
 
 --Consultas JAvier
