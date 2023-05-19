@@ -1103,14 +1103,13 @@ END;
 
 CREATE OR REPLACE PROCEDURE CheckExisteClasif(VEquipo in Equipo_objtab.nombre%type, VTemp in Clasificacion_objtab.Temporada%type) 
 IS
-    VID Clasificacion_objtab.ID_clasificacion%type;
+    VNum NUMBER(2);
 BEGIN
-    SELECT c.ID_clasificacion INTO VID
+    SELECT COUNT(*) INTO VNum
     FROM Clasificacion_objtab c
     WHERE c.Equipo = (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = VEquipo);
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-    IF VID IS NULL THEN
+    
+    IF VNum = 0 THEN
         INSERT INTO clasificacion_objtab (id_clasificacion, temporada, puntos, partidosganados, partidosperdidos, partidosempatados, golesfavor, golescontra, equipo, liga)
         VALUES (Seq_Clasif.NEXTVAL, VTemp, 0, 0, 0, 0, 0, 0,
             (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre LIKE VEquipo),
