@@ -1603,13 +1603,12 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
 
 
 CREATE OR REPLACE VIEW Top5MVP AS(
-SELECT j.Nombre AS NombreJugador, j.Apellido1 AS ApellidoJugador, COUNT(*) AS NumeroMVPS, j.Equipo.Nombre as Equipo
+SELECT j.Nombre AS NombreJugador, j.Apellido1 AS ApellidoJugador, j.Equipo.Nombre as Equipo, COUNT(*) AS NumeroMVPs
 FROM Partido_objtab p, Jugador_objtab j
-GROUP BY p.Resultado.MVP, j.ID_Persona, j.Equipo.Nombre, j.Apellido1, j.Nombre
-HAVING REF(j) = p.Resultado.MVP
+WHERE REF(j) = p.Resultado.MVP
+GROUP BY j.Apellido1, j.Nombre, j.Equipo.Nombre
 ORDER BY NumeroMVPS DESC
 FETCH FIRST 5 ROWS ONLY);
-
 
 
 
@@ -1821,10 +1820,8 @@ END;
 SET SERVEROUTPUT ON;
 
 EXECUTE MaxGoleadorPaisTemporada('Brasil');
-EXECUTE MaxGoleadorPaisTemporada('España');
+EXECUTE MaxGoleadorPaisTemporada('Portugal');
 EXECUTE MaxGoleadorPaisTemporada('Francia');
-
-
 
 
 -------XML JULIAN
