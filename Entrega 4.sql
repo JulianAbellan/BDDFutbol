@@ -3826,8 +3826,7 @@ UPDATE Jugador_objtab j
 SET Historial = (SELECT REF(h) from historial_objtab h where id_historial = 18)
 WHERE j.id_persona = 1008;
 
-select * from jugador_objtab where id_persona = 1015
-
+/*
 --Error: tienes que introducir el id del jugador
 EXECUTE Fichar_Jugador(null, 3, 6000000, 100000);
 --Error: tienes que introducir el id del equipo
@@ -3845,7 +3844,7 @@ EXECUTE Fichar_Jugador(1008, 1, 6000000, 100000);
 EXECUTE Fichar_jugador(1008 ,2, 6000000, 1000000000); 
 --Fichado (actualizamos su historial, sueldo y equipo, y se le resta el precio de traspaso al equipo que lo ficha)
 EXECUTE Fichar_jugador(1008 ,3, 6000000, 100000); 
-
+*/
 
 
 
@@ -3931,6 +3930,7 @@ BEGIN
 END;
 /
 
+/*
 --Actualiza los estadios (y presupuestos de sus clubes) de laliga santander (Real madrid --> No lo actualiza porque no tiene asociado el club)
 EXECUTE actualizar_aforo_y_presupuesto(1);
 --Volvemos a actualizar los estadios de la liga santander para ver que los datos cambian correctamente
@@ -3942,7 +3942,7 @@ EXECUTE actualizar_aforo_y_presupuesto(2);
 --Error: Liga introducida no existe (ya sea porque se introduce null o porque el id no está registrado).
 EXECUTE actualizar_aforo_y_presupuesto(3);
 EXECUTE actualizar_aforo_y_presupuesto(null);
-
+*/
 
 
 
