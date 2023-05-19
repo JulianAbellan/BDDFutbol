@@ -3327,10 +3327,6 @@ UPDATE Jugador_objtab
 SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Liverpool')
 WHERE id_persona = 91;/
 
-
-
--- El real madrid tiene 20 jugadores, por lo tanto, al añadir estos nuevos jugadores, los 5 primeros se insertan correctamente y se le asigna un historial con el Real Madrid, pero el último jugador no puede ser añadido al superar el límite de jugadores
-
 --TRIGGER 2
 
 --DISPARADOR QUE COMPRUEBE LA DISPONIBILIDAD DE LOS ESTADIOS
