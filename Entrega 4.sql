@@ -1684,7 +1684,7 @@ SELECT * FROM MasPorteriasImbatidas;/
 CREATE OR REPLACE VIEW TablaPichichisLaLiga AS
 SELECT j.Nombre, j.Apellido1 AS Apellido, SUM(Goles) AS TotalGoles
 FROM Partido_objtab p, TABLE(p.jugadores), Jugador_objtab j
-WHERE DEREF(jugador).Id_persona = j.ID_Persona
+WHERE REF(j) = jugador
     AND (DEREF(p.Equipo_local).Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.Pais = (SELECT REF(pa) FROM Pais_objtab pa WHERE pa.Nombre = 'España') AND Division = 1))
     AND (DEREF(p.Equipo_visitante).Liga = (SELECT REF(l) FROM LigaFutbol_objtab l WHERE l.Pais = (SELECT REF(pa) FROM Pais_objtab pa WHERE pa.Nombre = 'España') AND Division = 1))
 GROUP BY j.ID_Persona, j.Nombre, j.Apellido1
