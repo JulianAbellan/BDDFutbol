@@ -3940,9 +3940,345 @@ EXECUTE actualizar_aforo_y_presupuesto(3);
 EXECUTE actualizar_aforo_y_presupuesto(null);
 */
 
+/*
+
+    XML JAVIER
+
+
+*/
+
+begin
+ DBMS_XMLSCHEMA.REGISTERSCHEMA(SCHEMAURL=>'sudaderas.xsd', 
+SCHEMADOC=>'<?xml version="1.0"
+ encoding="utf-8"?>
+    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+        <xs:element name="sudaderas">
+            <xs:complexType>
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" name="sudadera">
+                        <xs:complexType>
+                            <xs:sequence>
+                                <xs:element name="marca" type="xs:string" />
+                                <xs:element name="modelo" type="xs:string" />
+                                <xs:element name="tipo">
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:string">
+                                            <xs:enumeration value="Con cremallera y capucha"/>
+                                            <xs:enumeration value="Con cremallera"/>
+                                            <xs:enumeration value="Con capucha"/>
+                                            <xs:enumeration value="De cuello redondo"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="equipo" type="xs:string" />
+                                <xs:element name="color">
+                                    <xs:simpleType>
+                                        <xs:restriction base = "xs:string">
+                                            <xs:enumeration value="Negro"/>
+                                            <xs:enumeration value="Gris"/>
+                                            <xs:enumeration value="Blanco"/>
+                                            <xs:enumeration value="Verde oscuro"/>
+                                            <xs:enumeration value="Verde claro"/>
+                                            <xs:enumeration value="Azul oscuro"/>
+                                            <xs:enumeration value="Azul marino"/>
+                                            <xs:enumeration value="Azul celeste"/>
+                                            <xs:enumeration value="Rojo"/>
+                                            <xs:enumeration value="Amarillo"/>
+                                            <xs:enumeration value="Naranja"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="talla">
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:string">
+                                            <xs:enumeration value="XXS"/>
+                                            <xs:enumeration value="XS"/>
+                                            <xs:enumeration value="S"/>
+                                            <xs:enumeration value="M"/>
+                                            <xs:enumeration value="L"/>
+                                            <xs:enumeration value="XL"/>
+                                            <xs:enumeration value="XXL"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="cantidad" default="1" >
+                                    <xs:simpleType>
+                                        <xs:restriction base="xs:unsignedByte">
+                                            <xs:minInclusive value="1"/>
+                                            <xs:maxInclusive value="50"/>
+                                        </xs:restriction>
+                                    </xs:simpleType>
+                                </xs:element>
+                                <xs:element name="pu" type="xs:decimal"/>
+                            </xs:sequence>
+                            <xs:attribute name="cod" type="xs:integer" use="required"/>
+                        </xs:complexType>
+                    </xs:element>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:element>
+    </xs:schema>', LOCAL=>true, GENTYPES=>false, GENBEAN=>false,
+GENTABLES=>false,
+ FORCE=>false, OPTIONS=>DBMS_XMLSCHEMA.REGISTER_BINARYXML,
+OWNER=>USER);
+commit;
+end;
+/
+
+--Crear tabla
+DROP TABLE Pedido_sudaderas;/
+
+CREATE TABLE Pedido_sudaderas(id number, sudadera xmltype)
+XMLTYPE COLUMN sudadera
+STORE AS BINARY XML
+XMLSCHEMA "http://xmlns.oracle.com/xdb/schemas/DBDD_42/sudaderas.xsd"
+ELEMENT "sudaderas";
+/
+
+-- Insert
+
+INSERT INTO Pedido_sudaderas VALUES (1, '<?xml version="1.0"?>
+        <sudaderas>
+            <sudadera cod = "1">
+                <marca>Adidas</marca>
+                <modelo>Condivo 22</modelo>
+                <tipo>De cuello redondo</tipo>
+                <equipo>Real Madrid CF</equipo>
+                <color>Blanco</color>
+                <talla>XL</talla>
+                <cantidad>2</cantidad>
+                <pu>39</pu>
+            </sudadera>
+            <sudadera cod = "2">
+                <marca>Nike</marca>
+                <modelo>Trainer P23</modelo>
+                <tipo>Con cremallera</tipo>
+                <equipo>FC Barcelona</equipo>
+                <color>Azul oscuro</color>
+                <talla>L</talla>
+                <cantidad>2</cantidad>
+                <pu>29</pu>
+            </sudadera>
+            <sudadera cod = "3">
+                <marca>Nike</marca>
+                <modelo>LFC Fanswear</modelo>
+                <tipo>Con cremallera y capucha</tipo>
+                <equipo>Liverpool</equipo>
+                <color>Rojo</color>
+                <talla>S</talla>
+                <cantidad>1</cantidad>
+                <pu>59</pu>
+            </sudadera>
+        </sudaderas>
+    ');/
+
+INSERT INTO Pedido_sudaderas VALUES (2, '<?xml version="1.0"?>
+        <sudaderas>
+            <sudadera cod = "4">
+                <marca>Puma</marca>
+                <modelo>Condivo 22</modelo>
+                <tipo>De cuello redondo</tipo>
+                <equipo>Valencia CF</equipo>
+                <color>Naranja</color>
+                <talla>L</talla>
+                <cantidad>4</cantidad>
+                <pu>49</pu>
+            </sudadera>
+        </sudaderas>
+    ');/
+
+INSERT INTO Pedido_sudaderas
+VALUES (3, '<?xml version="1.0"?>
+        <sudaderas>
+            <sudadera cod="10">
+                <marca>Nike</marca>
+                <modelo>Max pro</modelo>
+                <tipo>Con cremallera</tipo>
+                <equipo>Real Madrid</equipo>
+                <color>Gris</color>
+                <talla>XL</talla>
+                <cantidad>10</cantidad>
+                <pu>39</pu>
+            </sudadera>
+            <sudadera cod="11">
+                <marca>Adidas</marca>
+                <modelo>Nizza</modelo>
+                <tipo>Con cremallera y capucha</tipo>
+                <equipo>Barcelona</equipo>
+                <color>Azul marino</color>
+                <talla>M</talla>
+                <cantidad>5</cantidad>
+                <pu>69</pu>
+            </sudadera>
+            <sudadera cod="12">
+                <marca>Puma</marca>
+                <modelo>Legends</modelo>
+                <tipo>Con cremallera y capucha</tipo>
+                <equipo>Arsenal</equipo>
+                <color>Rojo</color>
+                <talla>L</talla>
+                <cantidad>8</cantidad>
+                <pu>49</pu>
+            </sudadera>
+            <sudadera cod="13">
+                <marca>Nike</marca>
+                <modelo>Isdin II</modelo>
+                <tipo>De cuello redondo</tipo>
+                <equipo>Tottenham</equipo>
+                <color>Negro</color>
+                <talla>S</talla>
+                <cantidad>7</cantidad>
+                <pu>59</pu>
+            </sudadera>
+            <sudadera cod="14">
+                <marca>Adidas</marca>
+                <modelo>Force</modelo>
+                <tipo>Con capucha</tipo>
+                <equipo>Manchester United</equipo>
+                <color>Rojo</color>
+                <talla>XL</talla>
+                <cantidad>2</cantidad>
+                <pu>39</pu>
+            </sudadera>
+            <sudadera cod="15">
+                <marca>Adidas</marca>
+                <modelo>Lizzard</modelo>
+                <tipo>Con cremallera</tipo>
+                <equipo>Juventus</equipo>
+                <color>Blanco</color>
+                <talla>XXL</talla>
+                <cantidad>6</cantidad>
+                <pu>29</pu>
+            </sudadera>
+        </sudaderas>'
+    );/
+
+-- Índice por precio unitario
+CREATE INDEX IDX_Pedido_sudaderas on Pedido_sudaderas(sudadera) INDEXTYPE IS
+XDB.XMLINDEX PARAMETERS
+('PATHS (INCLUDE (/sudaderas/sudadera/pu))');/
+
+
+-- Agregación de un nuevo elemento sudadera sobre el pedido con id = 1
+UPDATE Pedido_sudaderas
+SET sudadera=APPENDCHILDXML(sudadera, '/sudaderas',
+'       <sudadera cod = "5">
+            <marca>Hummel</marca>
+            <modelo>Away jersey 23</modelo>
+            <tipo>Con capucha</tipo>
+            <equipo>Betis</equipo>
+            <color>Verde claro</color>
+            <talla>M</talla>
+            <cantidad>1</cantidad>
+            <pu>45</pu>
+        </sudadera>')
+WHERE id = 1;/
+
+-- Actualizamos el campo de talla de la sudadera con código = 5 de M a XS del pedido con id = 1 
+UPDATE Pedido_sudaderas
+SET sudadera = updatexml(sudadera,'/sudaderas/sudadera[@cod="5"]/talla/text()','XS')
+WHERE id = 1;/
+
+-- eliminamos la sudadera con código = 2 del pedido con id = 1.
+
+UPDATE Pedido_sudaderas
+SET sudadera = deletexml(sudadera,'sudaderas/sudadera[@cod="2"]')
+WHERE id = 1;/
+
+
+--Consultas XPATH
+
+
+--select * from pedido_sudaderas;
+
+
+-- Consulta que muestra los pedidos que tienen al menos una sudadera de color azul marino o rojo.
+CREATE OR REPLACE VIEW Vista1Xpath AS
+SELECT id, p.sudadera.getStringVal() as Sudaderas
+FROM Pedido_sudaderas p
+WHERE EXISTSNODE(sudadera, '/sudaderas/sudadera[color="Azul marino" or color="Rojo"]') >= 1;/
+--SELECT * FROM vista1xpath;
+
+-- Consulta que nos devuelve todos los equipos de las sudaderas con id = 3
+CREATE OR REPLACE VIEW Vista2Xpath AS
+SELECT EXTRACT(sudadera,'/sudaderas/sudadera/equipo') AS Equipos
+FROM Pedido_sudaderas p 
+WHERE id=3;/
+--SELECT * FROM vista2xpath; 
+
+-- Esta consulta hace lo mismo que la anterior, pero se usa
+--XMLTable para descomponer el contenido en filas seleccionando
+--el elemento equipo de cada fila, de modo que se muestran los
+--equipos individualmente en filas separadas.
+CREATE OR REPLACE VIEW Vista2_1Xpath AS
+SELECT equipos.equipo
+FROM Pedido_sudaderas p,
+  XMLTable('/sudaderas/sudadera' PASSING p.sudadera
+           COLUMNS equipo VARCHAR2(50) PATH 'equipo') equipos
+WHERE p.id = 3;
+--select * from Vista2_1Xpath;
+
+-- Consulta que me muestra los pedidos que tengan alguna sudadera de
+--cuello redondo y con cantidad (individual) mayor que 3
+CREATE OR REPLACE VIEW Vista3Xpath AS
+SELECT id, p.sudadera.getStringVal() as Sudaderas
+FROM Pedido_sudaderas p
+WHERE XMLEXISTS('/sudaderas/sudadera[cantidad>3 and tipo="De cuello redondo"]' passing sudadera);/
+--SELECT * FROM Vista3Xpath;
+---
+-- Consultas XQuery
+
+-- Consulta que devuelve los precios unitarios de las sudaderas, de forma que se aplica un descuento del 10%
+--a aquellas que superan los 50$
+CREATE OR REPLACE VIEW Vista1XQuery AS
+SELECT id, XMLQUERY('for $i in /sudaderas/sudadera
+    let $pu := $i/pu/text()
+    where $pu > 0
+        order by $pu
+    return <pu valor="{$pu}">
+        {
+        if ($pu >= 50) then
+            $pu*0.9
+        else
+            $pu
+        }
+        </pu>'
+        PASSING sudadera RETURNING CONTENT) "Descuento de precios"
+FROM Pedido_sudaderas p;
+--SELECT * FROM Vista1XQuery;
+
+-- Consulta que devuelvos los pedidos y las tallas de sus sudaderas, de manera que si una talla de
+-- una sudadera es L, muestra una M
+CREATE OR REPLACE VIEW Vista2XQuery AS
+SELECT id, XMLQUERY('for $i in /sudaderas/sudadera
+    let $talla := $i/talla/text()
+    return <talla valor="{$talla}">{
+    if ($talla = "L") then
+        "M"
+    else
+        $talla
+    }
+    </talla>'
+    PASSING sudadera RETURNING CONTENT) "Cambio de talla"
+FROM Pedido_sudaderas p;
+--SELECT * FROM Vista2XQuery;
+
+-- Consulta que me devuelve las marcas de las sudaderas de los diferentes pedidos
+CREATE OR REPLACE VIEW Vista3XQuery AS
+SELECT id, XMLQUERY('for $s in distinct-values(/sudaderas/sudadera/marca)
+                    return concat($s, ", ")'
+                    PASSING sudadera RETURNING CONTENT) AS marcas
+FROM Pedido_sudaderas;
+--SELECT * FROM Vista3XQuery;
+
+
+/*
 
 
 
+
+
+*/
 DROP VIEW consultaXpath1;
 DROP VIEW consultaXpath2;
 DROP VIEW consultaXpath3;
