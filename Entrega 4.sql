@@ -1880,13 +1880,12 @@ end;
 
 DROP TABLE Pedido;/
 
-CREATE TABLE Pedido (
-  id NUMBER,
-  cantidad NUMBER,
-  botas XMLTYPE
-);
+CREATE TABLE pedido(id number, botas xmltype)
+XMLTYPE COLUMN botas
+STORE AS BINARY XML
+XMLSCHEMA "http://xmlns.oracle.com/xdb/schemas/DBDD_42/botas.xsd"
+ELEMENT "botas";
 /
-
 --INSERT
 
 INSERT INTO Pedido (id, cantidad, botas)
@@ -1930,6 +1929,13 @@ VALUES (
     </botas>'
   )
 );
+/
+
+--ÍNDICE
+
+CREATE INDEX idx_pedidos ON pedido(botas) INDEXTYPE IS
+XDB.XMLINDEX PARAMETERS
+('PATHS (INCLUDE (/botas/bota/pu))');
 /
 
 --APPEND
@@ -1989,6 +1995,7 @@ return <pu valor="{$pu}">
 </pu>' 
 PASSING botas RETURNING CONTENT).getStringVal() "Aumento de precio"
 from pedido p;
+
 
 
 
