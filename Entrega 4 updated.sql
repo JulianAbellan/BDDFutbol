@@ -3591,7 +3591,7 @@ END AFTER STATEMENT;
 END;
 /
 
-
+/*
 --Pruebas
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
     VALUES (200, '28/06/23', 16,
