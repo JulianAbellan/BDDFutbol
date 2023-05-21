@@ -1881,23 +1881,22 @@ ELEMENT "botas";
 /
 --INSERT
 
-INSERT INTO Pedido (id, cantidad, botas)
+INSERT INTO Pedido (id, botas)
 VALUES (
   1,
-  2,
   XMLTYPE('
     <botas>
       <bota cod="123">
         <marca>Nike</marca>
         <modelo>Air Max 90</modelo>
-        <pu>129,99</pu>
+        <pu>129.99</pu>
         <talla>42</talla>
         <color>Blanco</color>
       </bota>
       <bota cod="321">
         <marca>Adidas</marca>
         <modelo>Continental</modelo>
-        <pu>114,99</pu>
+        <pu>114.99</pu>
         <talla>45</talla>
         <color>Rojo</color>
       </bota>
@@ -1906,10 +1905,9 @@ VALUES (
 );
 /
 
-INSERT INTO Pedido (id, cantidad, botas)
+INSERT INTO Pedido (id, botas)
 VALUES (
   2,
-  1,
   XMLTYPE('
     <botas>
       <bota cod="789">
@@ -1961,19 +1959,19 @@ WHERE id=2;/
 --CONSULTAS
 
 CREATE OR REPLACE VIEW TodasBotas AS
-SELECT id, cantidad, p.botas.getStringVal() FROM Pedido p;/
+    SELECT id, p.botas.getStringVal() as botas  FROM Pedido p;/
 
 SELECT * FROM TodasBotas;/
 
 CREATE OR REPLACE VIEW PUPedido1 AS
-SELECT EXTRACT(botas,'/botas/bota/pu').getStringVal() from Pedido p where 
+SELECT EXTRACT(botas,'/botas/bota/pu').getStringVal() as pu from Pedido p where 
 id=1;/
 
 SELECT * FROM PUPedido1;/
 --XPATH
 
 CREATE OR REPLACE VIEW botas_xpath1 AS
-SELECT id, p.botas.getStringVal() from pedido p where 
+SELECT id, p.botas.getStringVal() as botas from pedido p where 
 xmlexists('/botas/bota[pu>100 and color="Negro"]'
 passing botas);/
 
