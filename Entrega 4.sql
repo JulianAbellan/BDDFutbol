@@ -3092,8 +3092,7 @@ SELECT EXTRACT(pantalones,'/pantalones/pantalon/marca').getStringVal() from Inve
 id=1;
 
 
-
--- xquery
+--XQUERY
 CREATE OR REPLACE VIEW consultaXqueryPantalon AS 
 select id,xmlquery('for $i in /pantalones/pantalon
 let $talla := $i/talla/text() 
