@@ -3102,9 +3102,9 @@ order by $talla
 return <talla valor="{$talla}">
  { 
  if ($talla >= 16) then 
- $talla
+  DBMS_OUTPUT.PUT_LINE("Talla hombre")
  else
- $talla
+ DBMS_OUTPUT.PUT_LINE("Talla niño")
  }
 </talla>' 
 PASSING pantalones RETURNING CONTENT) "tallaspantalones"
