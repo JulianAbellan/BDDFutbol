@@ -3081,7 +3081,7 @@ WHERE id=2;/
 
 UPDATE Inventario SET 
 pantalones=deletexml(pantalones,'/pantalones/pantalon[@cod="567"]')
-WHERE id=1;
+WHERE id=2;
 
 
 --CONSULTAS XPATH
