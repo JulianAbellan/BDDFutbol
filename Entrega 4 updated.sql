@@ -3276,8 +3276,8 @@ WHERE id=1;
 
 SELECT id, stock, p.pantalones.getStringVal() FROM Inventario p;
 /
-
-SELECT EXTRACT(pantalones,'/pantalones/pantalon/marca').getStringVal() from Inventario p where 
+CREATE VIEW consultaMarcaPantalon AS
+SELECT EXTRACT(pantalones,'/pantalones/pantalon/marca').getStringVal() AS Marca from Inventario p where 
 id=1;
 
 /
