@@ -18,8 +18,6 @@ DROP TYPE nt_arbitra_typ FORCE;
 DROP TYPE Partido_objtyp FORCE;
 DROP TYPE Resultado_objtyp FORCE;
 
-
-
 DROP TABLE Pais_objtab;
 DROP TABLE LigaFutbol_objtab;
 DROP TABLE Clasificacion_objtab;
@@ -515,12 +513,12 @@ INSERT INTO club_objtab (id_club, nombre, presupuesto, preside)
             (SELECT REF(pr) FROM presidente_objtab pr WHERE pr.id_persona = '200'))
             );/
 INSERT INTO club_objtab (id_club, nombre, presupuesto, preside)
-    VALUES (101, 'Real Madrid CF', 200000000,
+    VALUES (101, 'Real Madrid CF', 2000000000,
              Preside_objtyp(SYSDATE, null,
                 (SELECT REF(pr) FROM presidente_objtab pr WHERE pr.id_persona = '201'))
     );/
 INSERT INTO club_objtab (id_club, nombre, presupuesto)
-    VALUES (102, 'Atlético de Madrid', 100000000);/
+    VALUES (102, 'Atlético de Madrid', 10000);/
 
 INSERT INTO club_objtab (id_club, nombre, presupuesto)
     VALUES (103, 'Valencia CF', 80000000);/
@@ -760,6 +758,10 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     VALUES (119, 'Pedro Morrongo', 'Moya', 'Toya', 31, (SELECT REF(p) FROM Pais_objtab p WHERE p.nombre = 'Brasil'), 89, 'Delantero', 1000,
             (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 3, 1, 90, 0, 0);
 /
+
+
+INSERT INTO historial_objtab (Id_historial, equipo, TemporadaEntrada)
+    VALUES (0001, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'FC Barcelona'), '2021-22');/
 
 INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(200, 'Marc-André', 'ter Stegen', null, 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Alemania'), 1, 'Portero', 9000000,
@@ -1873,30 +1875,32 @@ end;
 
 DROP TABLE Pedido;/
 
-CREATE TABLE pedido(id number, botas xmltype)
-XMLTYPE COLUMN botas
-STORE AS BINARY XML
-XMLSCHEMA "http://xmlns.oracle.com/xdb/schemas/DBDD_42/botas.xsd"
-ELEMENT "botas";
+CREATE TABLE Pedido (
+  id NUMBER,
+  cantidad NUMBER,
+  botas XMLTYPE
+);
 /
+
 --INSERT
 
-INSERT INTO Pedido (id, botas)
+INSERT INTO Pedido (id, cantidad, botas)
 VALUES (
   1,
+  2,
   XMLTYPE('
     <botas>
       <bota cod="123">
         <marca>Nike</marca>
         <modelo>Air Max 90</modelo>
-        <pu>129.99</pu>
+        <pu>129,99</pu>
         <talla>42</talla>
         <color>Blanco</color>
       </bota>
       <bota cod="321">
         <marca>Adidas</marca>
         <modelo>Continental</modelo>
-        <pu>114.99</pu>
+        <pu>114,99</pu>
         <talla>45</talla>
         <color>Rojo</color>
       </bota>
@@ -1905,9 +1909,10 @@ VALUES (
 );
 /
 
-INSERT INTO Pedido (id, botas)
+INSERT INTO Pedido (id, cantidad, botas)
 VALUES (
   2,
+  1,
   XMLTYPE('
     <botas>
       <bota cod="789">
@@ -1920,13 +1925,6 @@ VALUES (
     </botas>'
   )
 );
-/
-
---ÍNDICE
-
-CREATE INDEX idx_pedidos ON pedido(botas) INDEXTYPE IS
-XDB.XMLINDEX PARAMETERS
-('PATHS (INCLUDE (/botas/bota/pu))');
 /
 
 --APPEND
@@ -1958,28 +1956,20 @@ WHERE id=2;/
 
 --CONSULTAS
 
-CREATE OR REPLACE VIEW TodasBotas AS
-    SELECT id, p.botas.getStringVal() as botas  FROM Pedido p;/
 
-SELECT * FROM TodasBotas;/
+SELECT id, cantidad, p.botas.getStringVal() FROM Pedido p;/
 
-CREATE OR REPLACE VIEW PUPedido1 AS
-SELECT EXTRACT(botas,'/botas/bota/pu').getStringVal() as pu from Pedido p where 
+SELECT EXTRACT(botas,'/botas/bota/pu').getStringVal() from Pedido p where 
 id=1;/
 
-SELECT * FROM PUPedido1;/
 --XPATH
 
-CREATE OR REPLACE VIEW botas_xpath1 AS
-SELECT id, p.botas.getStringVal() as botas from pedido p where 
+SELECT id, p.botas.getStringVal() from pedido p where 
 xmlexists('/botas/bota[pu>100 and color="Negro"]'
 passing botas);/
 
-SELECT * FROM botas_xpath1;/
-
 --XQUERY
 
-CREATE OR REPLACE VIEW botas_xquery AS
 select id,xmlquery('for $i in /botas/bota
 let $pu:=$i/pu/text() 
 where $pu>0
@@ -1993,9 +1983,8 @@ return <pu valor="{$pu}">
  }
 </pu>' 
 PASSING botas RETURNING CONTENT).getStringVal() "Aumento de precio"
-from pedido p;/
+from pedido p;
 
-SELECT * FROM botas_xquery;/
 
 
 
@@ -2386,6 +2375,7 @@ UPDATE Partido_objtab
 SET Resultado = (Resultado_objtyp(1, 1, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 200), 46, 46))
 WHERE ID_Partido = 107;
 /
+
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
     VALUES (108, SYSDATE, 13,
             (SELECT REF(e) FROM Equipo_objtab e WHERE e.Nombre = 'FC Barcelona'),
@@ -2622,10 +2612,10 @@ BEGIN
 END;
 /
 
-EXECUTE Clasificacion_temporada(1,'España');
-EXECUTE Clasificacion_temporada(1,NULL);
-EXECUTE Clasificacion_temporada(NULL, 'España');
-EXECUTE Clasificacion_temporada(NULL, NULL);
+EXECUTE Clasificacion_temporada2(1,'España');
+EXECUTE Clasificacion_temporada2(1,NULL);
+EXECUTE Clasificacion_temporada2(NULL, 'España');
+EXECUTE Clasificacion_temporada2(NULL, NULL);
 /
 
 
@@ -2904,30 +2894,6 @@ WHERE ID_Partido = 5;/
 UPDATE Partido_objtab
 SET Resultado = (Resultado_objtyp((SELECT p.Resultado.GolesLocal FROM Partido_objtab p WHERE p.ID_Partido=6), (SELECT p.Resultado.GolesVisitante FROM Partido_objtab p WHERE p.ID_Partido=6), (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 1000), 48, 50))
 WHERE ID_Partido = 6;/
-
-UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(5, 0, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 2000), 47, 50))
-WHERE ID_Partido = 100;/
-
-UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(3, 1, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 2001), 47, 48))
-WHERE ID_Partido = 101;/
-
-UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(17, 3, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 2003), 47, 50))
-WHERE ID_Partido = 104;/
-
-UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 10, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 107), 49, 46))
-WHERE ID_Partido = 106;/
-
-UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 20, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 2006), 46, 47))
-WHERE ID_Partido = 107;/
-
-UPDATE Partido_objtab
-SET Resultado = (Resultado_objtyp(0, 10, (SELECT REF(j) FROM Jugador_objtab j WHERE j.ID_persona = 79), 46, 46))
-WHERE ID_Partido = 108;/
 
 --_____________________________________________________________________________________________________
 
@@ -3276,8 +3242,8 @@ WHERE id=1;
 
 SELECT id, stock, p.pantalones.getStringVal() FROM Inventario p;
 /
-CREATE VIEW consultaMarcaPantalon AS
-SELECT EXTRACT(pantalones,'/pantalones/pantalon/marca').getStringVal() AS Marca from Inventario p where 
+
+SELECT EXTRACT(pantalones,'/pantalones/pantalon/marca').getStringVal() from Inventario p where 
 id=1;
 
 /
@@ -3428,11 +3394,18 @@ UPDATE Jugador_objtab
 SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Atlético de Madrid')
 WHERE id_persona = 1100;/
 
+UPDATE Jugador_objtab
+SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Liverpool')
+WHERE id_persona = 1000;/
+
 -- Actualizar jugador (EQUIPO DISTINTO) -> se cambia su equipo y su historial
 UPDATE Jugador_objtab
 SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Liverpool')
 WHERE id_persona = 1100;/
 
+UPDATE Jugador_objtab
+SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Atlético de Madrid')
+WHERE id_persona = 91;/
 -- Insertar jugador a equipo con más de 25 jugadores --> Error
 -- Voy a añadir jugadores al liverpool. He hecho una consulta para poder ver cuantos jugadores tiene el equipo y si funciona bien por tanto el trigger
 select j.equipo, count(*)
@@ -3511,7 +3484,7 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
 -- Actualizar equipo de jugador a un equipo con más  de 25 jugadores --> Error: El equipo no puede inscribir más jugadores a la liga
 UPDATE Jugador_objtab
 SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Liverpool')
-WHERE id_persona = 118;/
+WHERE id_persona = 91;/
 
 */
 
@@ -3786,7 +3759,7 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
             nt_arbitra_typ(
                         Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Id_persona = 1)),
                         Arbitra_objtyp('Asistente adicional', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Id_persona = 2)),
-                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Id_persona = 3)),
+                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.a.Id_persona = 3)),
                         Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Id_persona = 4))
             ));/
 -- Se cambia la fecha del partido:   28/06/23 - 16h --> 02/07/23 - 16h. 
@@ -4001,38 +3974,35 @@ END;
 /
 
 INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
-    VALUES(1500, 'Alvaro', 'Grists', '', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    VALUES(1008, 'Alvaro', 'Grists', '', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );
-
-/*
 
 INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
 VALUES (18, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), '2020-21');
 /
 UPDATE Jugador_objtab j
 SET Historial = (SELECT REF(h) from historial_objtab h where id_historial = 18)
-WHERE j.id_persona = 1500;
-*/
+WHERE j.id_persona = 1008;
 
 /*
 --Error: tienes que introducir el id del jugador
 EXECUTE Fichar_Jugador(null, 3, 6000000, 100000);
 --Error: tienes que introducir el id del equipo
-EXECUTE Fichar_Jugador(1500, null, 6000000, 100000);
+EXECUTE Fichar_Jugador(1008, null, 6000000, 100000);
 --Error: precio de transpaso no válido (o null)
-EXECUTE Fichar_Jugador(1500, 2, 6000000, -100);
-EXECUTE Fichar_Jugador(1500, 2, 6000000, null);
+EXECUTE Fichar_Jugador(1008, 2, 6000000, -100);
+EXECUTE Fichar_Jugador(1008, 2, 6000000, null);
 --Error: no existe el jugador
-EXECUTE Fichar_Jugador(91, 3, 6000000, 100000); 
+EXECUTE Fichar_Jugador(1015, 3, 6000000, 100000); 
 --Error: no existe el equipo
-EXECUTE Fichar_Jugador(1500, 100, 6000000, 100000); 
+EXECUTE Fichar_Jugador(1008, 100, 6000000, 100000); 
 --Error por mismo equipo
-EXECUTE Fichar_Jugador(1500, 1, 6000000, 100000); 
+EXECUTE Fichar_Jugador(1008, 1, 6000000, 100000); 
 --Error por no tener presupuesto
-EXECUTE Fichar_jugador(1500 ,2, 6000000, 1000000000); 
+EXECUTE Fichar_jugador(1008 ,2, 6000000, 1000000000); 
 --Fichado (actualizamos su historial, sueldo y equipo, y se le resta el precio de traspaso al equipo que lo ficha)
-EXECUTE Fichar_jugador(1500 ,3, 6000000, 100000); 
+EXECUTE Fichar_jugador(1008 ,3, 6000000, 100000); 
 */
 
 
