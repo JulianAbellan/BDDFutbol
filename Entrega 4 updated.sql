@@ -1877,13 +1877,12 @@ end;
 
 DROP TABLE Pedido;/
 
-CREATE TABLE Pedido (
-  id NUMBER,
-  cantidad NUMBER,
-  botas XMLTYPE
-);
+CREATE TABLE pedido(id number, botas xmltype)
+XMLTYPE COLUMN botas
+STORE AS BINARY XML
+XMLSCHEMA "http://xmlns.oracle.com/xdb/schemas/DBDD_42/botas.xsd"
+ELEMENT "botas";
 /
-
 --INSERT
 
 INSERT INTO Pedido (id, cantidad, botas)
@@ -1929,6 +1928,13 @@ VALUES (
 );
 /
 
+--ÍNDICE
+
+CREATE INDEX idx_pedidos ON pedido(botas) INDEXTYPE IS
+XDB.XMLINDEX PARAMETERS
+('PATHS (INCLUDE (/botas/bota/pu))');
+/
+
 --APPEND
 
 
@@ -1958,20 +1964,28 @@ WHERE id=2;/
 
 --CONSULTAS
 
-
+CREATE OR REPLACE VIEW TodasBotas AS
 SELECT id, cantidad, p.botas.getStringVal() FROM Pedido p;/
 
+SELECT * FROM TodasBotas;/
+
+CREATE OR REPLACE VIEW PUPedido1 AS
 SELECT EXTRACT(botas,'/botas/bota/pu').getStringVal() from Pedido p where 
 id=1;/
 
+SELECT * FROM PUPedido1;/
 --XPATH
 
+CREATE OR REPLACE VIEW botas_xpath1 AS
 SELECT id, p.botas.getStringVal() from pedido p where 
 xmlexists('/botas/bota[pu>100 and color="Negro"]'
 passing botas);/
 
+SELECT * FROM botas_xpath1;/
+
 --XQUERY
 
+CREATE OR REPLACE VIEW botas_xquery AS
 select id,xmlquery('for $i in /botas/bota
 let $pu:=$i/pu/text() 
 where $pu>0
@@ -1985,8 +1999,9 @@ return <pu valor="{$pu}">
  }
 </pu>' 
 PASSING botas RETURNING CONTENT).getStringVal() "Aumento de precio"
-from pedido p;
+from pedido p;/
 
+SELECT * FROM botas_xquery;/
 
 
 
