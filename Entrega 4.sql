@@ -3093,24 +3093,23 @@ id=1;
 
 
 --XQUERY
-CREATE OR REPLACE VIEW consultaXqueryPantalon AS 
+CREATE OR REPLACE VIEW consultaXqueryPantalon AS
 select id,xmlquery('for $i in /pantalones/pantalon
-let $talla := $i/talla/text() 
+let $talla := $i/talla/text()
 where $talla>0
 order by $talla
 return <talla valor="{$talla}">
- { 
- if ($talla >= 16) then 
-  DBMS_OUTPUT.PUT_LINE("Talla hombre")
+ {
+ if ($talla >= 16) then
+  "Talla hombre"
  else
- DBMS_OUTPUT.PUT_LINE("Talla niño")
+  "Talla niño"
  }
-</talla>' 
-PASSING pantalones RETURNING CONTENT) "tallaspantalones"
-                FROM Inventario p;
+</talla>'
+PASSING pantalones RETURNING CONTENT).getStringVal() "tallaspantalones"
+                FROM Inventario p;/
 
-
-SELECT * FROM consultaXqueryPantalon;
+SELECT * FROM consultaXqueryPantalon;/
 
 -- Disparadores
 
