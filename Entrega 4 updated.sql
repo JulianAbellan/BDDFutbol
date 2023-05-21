@@ -3428,18 +3428,11 @@ UPDATE Jugador_objtab
 SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Atlético de Madrid')
 WHERE id_persona = 1100;/
 
-UPDATE Jugador_objtab
-SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Liverpool')
-WHERE id_persona = 1000;/
-
 -- Actualizar jugador (EQUIPO DISTINTO) -> se cambia su equipo y su historial
 UPDATE Jugador_objtab
 SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Liverpool')
 WHERE id_persona = 1100;/
 
-UPDATE Jugador_objtab
-SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Atlético de Madrid')
-WHERE id_persona = 91;/
 -- Insertar jugador a equipo con más de 25 jugadores --> Error
 -- Voy a añadir jugadores al liverpool. He hecho una consulta para poder ver cuantos jugadores tiene el equipo y si funciona bien por tanto el trigger
 select j.equipo, count(*)
@@ -3518,7 +3511,7 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
 -- Actualizar equipo de jugador a un equipo con más  de 25 jugadores --> Error: El equipo no puede inscribir más jugadores a la liga
 UPDATE Jugador_objtab
 SET Equipo = (select ref(e) FROM Equipo_objtab e WHERE e.nombre = 'Liverpool')
-WHERE id_persona = 91;/
+WHERE id_persona = 118;/
 
 */
 
@@ -3598,7 +3591,7 @@ END AFTER STATEMENT;
 END;
 /
 
-/*
+
 --Pruebas
 INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visitante, Estadio_partido, jugadores, arbitros)
     VALUES (200, '28/06/23', 16,
@@ -3793,7 +3786,7 @@ INSERT INTO Partido_objtab (ID_partido, Fecha, Hora, Equipo_local, Equipo_visita
             nt_arbitra_typ(
                         Arbitra_objtyp('Principal', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Id_persona = 1)),
                         Arbitra_objtyp('Asistente adicional', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Id_persona = 2)),
-                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.a.Id_persona = 3)),
+                        Arbitra_objtyp('Asistente', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Id_persona = 3)),
                         Arbitra_objtyp('Cuarto', (SELECT REF(a) FROM Arbitro_objtab A WHERE a.Id_persona = 4))
             ));/
 -- Se cambia la fecha del partido:   28/06/23 - 16h --> 02/07/23 - 16h. 
@@ -4012,12 +4005,15 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );
 
+/*
+
 INSERT INTO Historial_objtab (id_historial, equipo, temporadaentrada)
 VALUES (18, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), '2020-21');
 /
 UPDATE Jugador_objtab j
 SET Historial = (SELECT REF(h) from historial_objtab h where id_historial = 18)
 WHERE j.id_persona = 1008;
+*/
 
 /*
 --Error: tienes que introducir el id del jugador
