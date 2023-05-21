@@ -2858,7 +2858,7 @@ for vi in (
 
         UPDATE jugador_objtab set MinutosJugados = MinutosJugados + SolucionJugador WHERE ID_persona = vi.idpersona;
     end loop;
-END;    
+END;    /
 
 execute MinutoSalidaJugador;
 
