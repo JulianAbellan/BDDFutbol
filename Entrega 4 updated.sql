@@ -761,10 +761,6 @@ INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais
             (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'Real Madrid CF'), 3, 1, 90, 0, 0);
 /
 
-
-INSERT INTO historial_objtab (Id_historial, equipo, TemporadaEntrada)
-    VALUES (0001, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre = 'FC Barcelona'), '2021-22');/
-
 INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
     VALUES(200, 'Marc-André', 'ter Stegen', null, 30, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Alemania'), 1, 'Portero', 9000000,
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
@@ -3999,7 +3995,7 @@ END;
 /
 
 INSERT INTO Jugador_objtab (ID_persona, Nombre, Apellido1, Apellido2, Edad, Pais, Dorsal, Posicion, Sueldo, Equipo, TarjetasRojas, TarjetasAmarillas, PartidosJugados, MinutosJugados, GolesTotales)
-    VALUES(1008, 'Alvaro', 'Grists', '', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
+    VALUES(1500, 'Alvaro', 'Grists', '', 23, (SELECT REF(p) FROM Pais_objtab p WHERE p.Nombre = 'Portugal'), 20, 'Delantero', 7000000,
     (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelona'), 0, 0, 0, 0, 0
 );
 
