@@ -4012,27 +4012,27 @@ VALUES (18, (SELECT REF(e) FROM equipo_objtab e WHERE e.nombre like 'FC Barcelon
 /
 UPDATE Jugador_objtab j
 SET Historial = (SELECT REF(h) from historial_objtab h where id_historial = 18)
-WHERE j.id_persona = 1008;
+WHERE j.id_persona = 1500;
 */
 
 /*
 --Error: tienes que introducir el id del jugador
 EXECUTE Fichar_Jugador(null, 3, 6000000, 100000);
 --Error: tienes que introducir el id del equipo
-EXECUTE Fichar_Jugador(1008, null, 6000000, 100000);
+EXECUTE Fichar_Jugador(1500, null, 6000000, 100000);
 --Error: precio de transpaso no válido (o null)
-EXECUTE Fichar_Jugador(1008, 2, 6000000, -100);
-EXECUTE Fichar_Jugador(1008, 2, 6000000, null);
+EXECUTE Fichar_Jugador(1500, 2, 6000000, -100);
+EXECUTE Fichar_Jugador(1500, 2, 6000000, null);
 --Error: no existe el jugador
-EXECUTE Fichar_Jugador(1015, 3, 6000000, 100000); 
+EXECUTE Fichar_Jugador(91, 3, 6000000, 100000); 
 --Error: no existe el equipo
-EXECUTE Fichar_Jugador(1008, 100, 6000000, 100000); 
+EXECUTE Fichar_Jugador(1500, 100, 6000000, 100000); 
 --Error por mismo equipo
-EXECUTE Fichar_Jugador(1008, 1, 6000000, 100000); 
+EXECUTE Fichar_Jugador(1500, 1, 6000000, 100000); 
 --Error por no tener presupuesto
-EXECUTE Fichar_jugador(1008 ,2, 6000000, 1000000000); 
+EXECUTE Fichar_jugador(1500 ,2, 6000000, 1000000000); 
 --Fichado (actualizamos su historial, sueldo y equipo, y se le resta el precio de traspaso al equipo que lo ficha)
-EXECUTE Fichar_jugador(1008 ,3, 6000000, 100000); 
+EXECUTE Fichar_jugador(1500 ,3, 6000000, 100000); 
 */
 
 
